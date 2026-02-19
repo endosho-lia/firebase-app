@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>日報入力</title>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+</head>
+<body>
+
+<h2>日報入力</h2>
+
+<input type="text" id="project" placeholder="案件名"><br><br>
+<input type="number" id="sales" placeholder="売上"><br><br>
+<input type="number" id="expense" placeholder="経費"><br><br>
+
+<button onclick="saveReport()">保存</button>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  // ← あなたのFirebase設定を入れる
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.saveReport = async function () {
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("ログインしてください");
+    return;
+  }
+
+  await addDoc(collection(db, "reports"), {
+    userId: user.uid,
+    project: document.getElementById("project").value,
+    sales: Number(document.getElementById("sales").value),
+    expense: Number(document.getElementById("expense").value),
+    date: new Date().toISOString().split("T")[0],
+    createdAt: serverTimestamp()
+  });
+
+  alert("保存しました");
+}
+
+</script>
+
+</body>
+</html>

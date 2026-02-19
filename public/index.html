@@ -1,62 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>ログイン</title>
+<meta charset="UTF-8">
+<title>ログイン</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #2a5298;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+</style>
 </head>
+
 <body>
-  <h1>ログイン</h1>
 
-  <input type="email" id="email" placeholder="メール">
-  <br><br>
+<div class="login-box">
+  <h2>業務管理システム</h2>
+  <input type="email" id="email" placeholder="メールアドレス">
   <input type="password" id="password" placeholder="パスワード">
-  <br><br>
-
   <button onclick="login()">ログイン</button>
-  <button onclick="signup()">新規登録</button>
+</div>
 
-  <p id="message"></p>
+<script type="module">
 
-  <!-- Firebase v8 SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  <script>
-    var firebaseConfig = {
-      apiKey: "AIzaSyAjg3eh85Zn8gMXFVyOe1h7fm1tGvLg_sw",
-      authDomain: "liagroup-a1ab1.firebaseapp.com",
-      projectId: "liagroup-a1ab1",
-    };
+const firebaseConfig = {
+  // ← あなたの設定をここに
+};
 
-    firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    var auth = firebase.auth();
+window.login = async function() {
 
-    function signup() {
-      var email = document.getElementById("email").value;
-      var password = document.getElementById("password").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(function() {
-          document.getElementById("message").innerText = "登録成功！";
-        })
-        .catch(function(error) {
-          document.getElementById("message").innerText = error.message;
-        });
+  try {
+
+    // ログイン
+    const userCredential =
+      await signInWithEmailAndPassword(auth, email, password);
+
+    const user = userCredential.user;
+
+    // usersドキュメント確認
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+
+    // 無ければ自動作成
+    if (!userDoc.exists()) {
+
+      await setDoc(doc(db, "users", user.uid), {
+        role: "user", // 初期は一般ユーザー
+        name: email.split("@")[0], // 仮の名前
+        createdAt: serverTimestamp()
+      });
+
     }
 
-    function login() {
-      var email = document.getElementById("email").value;
-      var password = document.getElementById("password").value;
+    // menuへ
+    window.location.href = "menu.html";
 
-      auth.signInWithEmailAndPassword(email, password)
-        .then(function() {
-          location.href = "menu.html";
-          })
-        .catch(function(error) {
-          document.getElementById("message").innerText = error.message;
-        });
-    }
-  </script>
+  } catch (error) {
+    alert("ログイン失敗：" + error.message);
+  }
+}
+
+</script>
+
 </body>
 </html>
