@@ -23,34 +23,23 @@ window.logout = async ()=>{
   location.replace("index.html");
 }
 
-let checked = false;
-
 onAuthStateChanged(auth, async user=>{
-
-  console.log("auth:", user);
-
-  if(!checked){
-    checked = true;
-    if(!user) return;
-  }
-
   if(!user){
     location.replace("index.html");
     return;
   }
 
-  try{
+  try {
+
     const snap = await getDoc(doc(db,"users",user.uid));
 
-    if(!snap.exists()) return;
-
-    if(snap.data().role !== "admin"){
-      document.getElementById("admin1")?.remove();
-      document.getElementById("admin2")?.remove();
+    if(!snap.exists() || snap.data().role !== "admin"){
+      document.getElementById("admin1").style.display="none";
+      document.getElementById("admin2").style.display="none";
     }
 
-  }catch(e){
-    console.log("Firestore:", e);
+  } catch(e) {
+    console.log("Firestore error:", e);
   }
 });
 </script>

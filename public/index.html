@@ -1,13 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ログイン</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-box {
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #2a5298;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h2>古物事業</h2>
+  <input type="email" id="email" placeholder="メールアドレス">
+  <input type="password" id="password" placeholder="パスワード">
+  <button onclick="login()">ログイン</button>
+</div>
+
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
   authDomain: "liagroup-a1ab1.firebaseapp.com",
   projectId: "liagroup-a1ab1",
-  storageBucket: "liagroup-a1ab1.appspot.com",
+  storageBucket: "liagroup-a1ab1.firebasestorage.app",
   messagingSenderId: "361842389207",
   appId: "1:361842389207:web:1a7b92ef9d85b2726a4092"
 };
@@ -16,38 +71,42 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ★既にログイン済みならmenuへ
-onAuthStateChanged(auth, user=>{
-  if(user){
-    location.replace("menu.html");
-  }
-});
-
 window.login = async function() {
 
-  const email = email.value;
-  const password = password.value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
   try {
+
+    // ログイン
     const userCredential =
       await signInWithEmailAndPassword(auth, email, password);
 
     const user = userCredential.user;
 
+    // usersドキュメント確認
     const userDoc = await getDoc(doc(db, "users", user.uid));
 
+    // 無ければ自動作成
     if (!userDoc.exists()) {
+
       await setDoc(doc(db, "users", user.uid), {
-        role: "user",
-        name: email.split("@")[0],
+        role: "user", // 初期は一般ユーザー
+        name: email.split("@")[0], // 仮の名前
         createdAt: serverTimestamp()
       });
+
     }
 
-    location.replace("menu.html");
+    // menuへ
+    window.location.href = "menu.html";
 
   } catch (error) {
     alert("ログイン失敗：" + error.message);
   }
 }
+
 </script>
+
+</body>
+</html>
