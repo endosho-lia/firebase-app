@@ -29,11 +29,17 @@ onAuthStateChanged(auth, async user=>{
     return;
   }
 
-  const snap = await getDoc(doc(db,"users",user.uid));
+  try {
 
-  if(!snap.exists() || snap.data().role !== "admin"){
-    document.getElementById("admin1").style.display="none";
-    document.getElementById("admin2").style.display="none";
+    const snap = await getDoc(doc(db,"users",user.uid));
+
+    if(!snap.exists() || snap.data().role !== "admin"){
+      document.getElementById("admin1").style.display="none";
+      document.getElementById("admin2").style.display="none";
+    }
+
+  } catch(e) {
+    console.log("Firestore error:", e);
   }
 });
 </script>
