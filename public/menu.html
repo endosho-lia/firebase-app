@@ -1,81 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>メニュー</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メインメニュー</title>
 
 <style>
-body {
-  font-family: Arial;
-  padding: 30px;
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(135deg,#1e3c72,#2a5298);
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#333;
 }
 
-.menu {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  max-width: 500px;
+.container{
+  background:white;
+  padding:40px;
+  border-radius:14px;
+  width:900px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);
 }
 
-button {
-  padding: 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
+h1{
+  margin-top:0;
+  text-align:center;
 }
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+  margin-top:30px;
+}
+
+.card{
+  padding:25px;
+  border-radius:12px;
+  background:#f3f6fb;
+  cursor:pointer;
+  transition:.25s;
+  text-align:center;
+  font-weight:bold;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+  background:#e3ebff;
+}
+
+.admin{
+  background:#ffe9e9;
+}
+
+.logout{
+  margin-top:25px;
+  text-align:center;
+}
+
+button{
+  padding:10px 20px;
+  border:none;
+  border-radius:6px;
+  background:#2a5298;
+  color:white;
+  cursor:pointer;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>メインメニュー</h2>
-<div id="welcome"></div>
+<div class="container">
+  <h1>業務管理システム</h1>
 
-<div class="menu">
-  <button onclick="go('register.html')">日報入力</button>
-  <button onclick="go('pl.html')">PL</button>
-  <button onclick="go('quote.html')">相見積</button>
-  <button id="adminBtn" style="display:none;" onclick="go('admin.html')">
-    管理者ページ
-  </button>
+  <div class="grid">
+    <div class="card" onclick="move('daily.html')">日報入力</div>
+    <div class="card" onclick="move('estimate.html')">相見積表</div>
+    <div class="card" onclick="move('pl.html')">PL</div>
+    <div class="card" onclick="move('cash.html')">レジ管理</div>
+    <div class="card" onclick="move('expense.html')">販管費</div>
+    <div class="card" onclick="move('setting.html')">設定</div>
+
+    <!-- 管理者のみ表示 -->
+    <div class="card admin" id="admin1" onclick="move('authority.html')">権限管理</div>
+    <div class="card admin" id="admin2" onclick="move('account.html')">アカウント管理</div>
+  </div>
+
+  <div class="logout">
+    <button onclick="logout()">ログアウト</button>
+  </div>
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  // あなたの設定
+  apiKey: "AIzaSyAjg3eh85Zn8gMXFVyOe1h7fm1tGvLg_sw",
+  authDomain: "liagroup-a1ab1.firebaseapp.com",
+  projectId: "liagroup-a1ab1",
+  storageBucket: "liagroup-a1ab1.firebasestorage.app",
+  messagingSenderId: "361842389207",
+  appId: "1:361842389207:web:1a7b92ef9d85b2726a4092"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-window.go = function(page) {
-  window.location.href = page;
+window.move = (page)=> location.href = page;
+
+window.logout = async ()=>{
+  await signOut(auth);
+  location.href = "index.html";
 }
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "index.html";
-  } else {
+onAuthStateChanged(auth, async user=>{
+  if(!user){
+    location.href="index.html";
+    return;
+  }
 
-    const docSnap = await getDoc(doc(db, "users", user.uid));
+  const snap = await getDoc(doc(db,"users",user.uid));
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-
-      document.getElementById("welcome").innerHTML =
-        "ようこそ " + data.name + " さん";
-
-      if (data.role === "admin") {
-        document.getElementById("adminBtn").style.display = "block";
-      }
-    }
+  if(!snap.exists() || snap.data().role !== "admin"){
+    document.getElementById("admin1").style.display="none";
+    document.getElementById("admin2").style.display="none";
   }
 });
 
