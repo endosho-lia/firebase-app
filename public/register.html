@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>レジ管理</title>
+  <link rel="stylesheet" href="menu.css">
+  <style>
+    body{font-family:sans-serif;margin:0;background:#f5f5f5}
+    .container{padding:20px;max-width:600px;margin:auto}
+    input{width:80px;padding:6px;margin:4px}
+    .row{display:flex;justify-content:space-between;align-items:center}
+    .total{font-size:20px;font-weight:bold;margin-top:10px}
+    button{padding:10px 20px;margin-top:10px}
+  </style>
+</head>
+<body>
+
+<div id="menu"></div>
+
+<div class="container">
+  <h2>レジ開け</h2>
+
+  <div id="cashInputs"></div>
+
+  <div class="total">合計: ¥<span id="total">0</span></div>
+
+  <button onclick="saveOpen()">保存</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = { };
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const bills = [10000,5000,2000,1000,500,100,50,10,5,1];
+
+const container = document.getElementById("cashInputs");
+
+bills.forEach(v=>{
+  const div=document.createElement("div");
+  div.className="row";
+  div.innerHTML=`${v}円 <input type='number' min='0' value='0' data-val='${v}'>`;
+  container.appendChild(div);
+});
+
+container.addEventListener("input",calc);
+
+function calc(){
+  let sum=0;
+  document.querySelectorAll("#cashInputs input").forEach(i=>{
+    sum+=Number(i.value||0)*Number(i.dataset.val);
+  });
+  document.getElementById("total").textContent=sum;
+}
+
+async function saveOpen(){
+  const data={};
+  document.querySelectorAll("#cashInputs input").forEach(i=>{
+    data[i.dataset.val]=Number(i.value||0);
+  });
+  data.total=Number(document.getElementById("total").textContent);
+  data.date=new Date().toISOString().slice(0,10);
+
+  await setDoc(doc(db,"cashOpen",data.date),data);
+  alert("保存完了");
+}
+</script>
+
+<script src="menu.js"></script>
+
+</body>
+</html>

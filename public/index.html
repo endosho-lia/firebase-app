@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <title>ログイン</title>
@@ -7,53 +7,112 @@
 <style>
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
+  background: #e6d499;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
   height: 100vh;
+  font-family: Arial, sans-serif;
 }
 
+/* タイトル */
+.title {
+  margin-top: 80px;
+  font-size: 42px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* ログイン箱 */
 .login-box {
   background: white;
   padding: 40px;
   border-radius: 12px;
   width: 320px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  margin-top: 40px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
 }
 
 input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  font-size: 15px;
 }
 
+/* ログインボタン */
 button {
   width: 100%;
-  padding: 10px;
-  background: #2a5298;
+  padding: 12px;
+  background: #e63333;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+/* エラー表示 */
+#error {
+  color: red;
+  margin-bottom: 12px;
+  min-height: 18px;
+  font-size: 14px;
+}
+
+/* パスワード表示切替 */
+.toggle-password {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 13px; /* 少し小さめ */
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; /* 明朝に統一 */
+  color: #555; /* 濃すぎない落ち着いたグレー */
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-password input[type="checkbox"] {
+  margin-right: 8px; /* 間隔を少し広めに */
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* optional: ホバーで文字色少し濃く */
+.toggle-password:hover {
+  color: #333;
 }
 </style>
 </head>
 
 <body>
 
+<div class="title">古物事業部</div>
+
 <div class="login-box">
-  <h2>古物事業</h2>
-  <input type="email" id="email" placeholder="メールアドレス">
-  <input type="password" id="password" placeholder="パスワード">
-  <button onclick="login()">ログイン</button>
+  <div id="error"></div>
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="メールアドレス" required>
+    <input type="password" id="password" placeholder="パスワード" required>
+    <label class="toggle-password">
+      <input type="checkbox" id="showPassword"> パスワードを表示
+    </label>
+    <button type="submit">ログイン</button>
+  </form>
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -62,7 +121,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
   authDomain: "liagroup-a1ab1.firebaseapp.com",
   projectId: "liagroup-a1ab1",
-  storageBucket: "liagroup-a1ab1.firebasestorage.app",
+  storageBucket: "liagroup-a1ab1.appspot.com",
   messagingSenderId: "361842389207",
   appId: "1:361842389207:web:1a7b92ef9d85b2726a4092"
 };
@@ -71,41 +130,50 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-window.login = async function() {
+const loginForm = document.getElementById("loginForm");
+const errorDiv = document.getElementById("error");
+const passwordInput = document.getElementById("password");
+const showPasswordCheckbox = document.getElementById("showPassword");
+
+// パスワード表示切替
+showPasswordCheckbox.addEventListener("change", () => {
+  passwordInput.type = showPasswordCheckbox.checked ? "text" : "password";
+});
+
+// フォーム送信でログイン
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault(); // ページリロード防止
+  errorDiv.textContent = ""; // 前回エラークリア
 
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
   try {
-
-    // ログイン
-    const userCredential =
-      await signInWithEmailAndPassword(auth, email, password);
-
+    // Firebase Authログイン
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // usersドキュメント確認
-    const userDoc = await getDoc(doc(db, "users", user.uid));
+    // Firestoreのユーザードキュメント確認
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
 
-    // 無ければ自動作成
+    // ドキュメントが無ければ作成
     if (!userDoc.exists()) {
-
-      await setDoc(doc(db, "users", user.uid), {
-        role: "user", // 初期は一般ユーザー
-        name: email.split("@")[0], // 仮の名前
+      await setDoc(userDocRef, {
+        role: "user",
+        name: email.split("@")[0],
         createdAt: serverTimestamp()
       });
-
     }
 
-    // menuへ
+    // ログイン成功後の遷移
     window.location.href = "menu.html";
 
   } catch (error) {
-    alert("ログイン失敗：" + error.message);
+    // エラー表示
+    errorDiv.textContent = "ログイン失敗: " + error.message;
   }
-}
-
+});
 </script>
 
 </body>
