@@ -8,6 +8,7 @@
 <style>
 body.loading{ visibility:hidden; font-family: Arial, sans-serif; background:#e6d499; margin:0; }
 
+/* タブ */
 .tabs { display:flex; justify-content:center; margin-top:20px; border-bottom:2px solid #ccc; }
 .tab { padding:10px 20px; cursor:pointer; font-weight:bold; font-family:"Hiragino Mincho ProN","Yu Mincho",serif; }
 .tab.active { border-bottom:3px solid #e63333; color:#e63333; }
@@ -15,10 +16,32 @@ body.loading{ visibility:hidden; font-family: Arial, sans-serif; background:#e6d
 .tab-content { display:none; max-width:900px; margin:20px auto; padding:20px; background:white; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
 .tab-content.active { display:block; }
 
-.money-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* ⭐ 金種入力デザイン */
+.money-table{
+  width:100%;
+  border-collapse:collapse;
+}
+.money-table td{
+  padding:6px;
+}
+.money-label{
+  text-align:right;
+  font-weight:bold;
+  width:120px;
+}
+.money-input input{
+  text-align:center;
+  font-size:16px;
+}
+
+.total{font-size:20px;font-weight:bold;margin-top:10px;text-align:center}
+
 input, select { width:100%; padding:10px; margin:4px 0; border-radius:6px; border:1px solid #ccc; }
 button { padding:12px; background:#e63333; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px; }
-.total{font-size:18px;font-weight:bold;margin-top:8px}
+
+/* 在庫 */
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
 </style>
 </head>
 
@@ -34,17 +57,19 @@ button { padding:12px; background:#e63333; color:white; border:none; border-radi
 <!-- レジ開け -->
 <div class="tab-content active" id="tab-open">
 <h2>レジ開け</h2>
-<div class="money-grid">
-<label>10000円</label><input type="number" id="o10000" value="0">
-<label>5000円</label><input type="number" id="o5000" value="0">
-<label>1000円</label><input type="number" id="o1000" value="0">
-<label>500円</label><input type="number" id="o500" value="0">
-<label>100円</label><input type="number" id="o100" value="0">
-<label>50円</label><input type="number" id="o50" value="0">
-<label>10円</label><input type="number" id="o10" value="0">
-<label>5円</label><input type="number" id="o5" value="0">
-<label>1円</label><input type="number" id="o1" value="0">
-</div>
+
+<table class="money-table">
+<tr><td class="money-label">10000円</td><td class="money-input"><input id="o10000" type="number" value="0"></td></tr>
+<tr><td class="money-label">5000円</td><td class="money-input"><input id="o5000" type="number" value="0"></td></tr>
+<tr><td class="money-label">1000円</td><td class="money-input"><input id="o1000" type="number" value="0"></td></tr>
+<tr><td class="money-label">500円</td><td class="money-input"><input id="o500" type="number" value="0"></td></tr>
+<tr><td class="money-label">100円</td><td class="money-input"><input id="o100" type="number" value="0"></td></tr>
+<tr><td class="money-label">50円</td><td class="money-input"><input id="o50" type="number" value="0"></td></tr>
+<tr><td class="money-label">10円</td><td class="money-input"><input id="o10" type="number" value="0"></td></tr>
+<tr><td class="money-label">5円</td><td class="money-input"><input id="o5" type="number" value="0"></td></tr>
+<tr><td class="money-label">1円</td><td class="money-input"><input id="o1" type="number" value="0"></td></tr>
+</table>
+
 <div class="total">合計：<span id="openTotal">0</span>円</div>
 <button id="openBtn">レジ開け保存</button>
 <div id="msgOpen"></div>
@@ -53,17 +78,19 @@ button { padding:12px; background:#e63333; color:white; border:none; border-radi
 <!-- レジ締め -->
 <div class="tab-content" id="tab-close">
 <h2>レジ締め</h2>
-<div class="money-grid">
-<label>10000円</label><input type="number" id="c10000" value="0">
-<label>5000円</label><input type="number" id="c5000" value="0">
-<label>1000円</label><input type="number" id="c1000" value="0">
-<label>500円</label><input type="number" id="c500" value="0">
-<label>100円</label><input type="number" id="c100" value="0">
-<label>50円</label><input type="number" id="c50" value="0">
-<label>10円</label><input type="number" id="c10" value="0">
-<label>5円</label><input type="number" id="c5" value="0">
-<label>1円</label><input type="number" id="c1" value="0">
-</div>
+
+<table class="money-table">
+<tr><td class="money-label">10000円</td><td class="money-input"><input id="c10000" type="number" value="0"></td></tr>
+<tr><td class="money-label">5000円</td><td class="money-input"><input id="c5000" type="number" value="0"></td></tr>
+<tr><td class="money-label">1000円</td><td class="money-input"><input id="c1000" type="number" value="0"></td></tr>
+<tr><td class="money-label">500円</td><td class="money-input"><input id="c500" type="number" value="0"></td></tr>
+<tr><td class="money-label">100円</td><td class="money-input"><input id="c100" type="number" value="0"></td></tr>
+<tr><td class="money-label">50円</td><td class="money-input"><input id="c50" type="number" value="0"></td></tr>
+<tr><td class="money-label">10円</td><td class="money-input"><input id="c10" type="number" value="0"></td></tr>
+<tr><td class="money-label">5円</td><td class="money-input"><input id="c5" type="number" value="0"></td></tr>
+<tr><td class="money-label">1円</td><td class="money-input"><input id="c1" type="number" value="0"></td></tr>
+</table>
+
 <div class="total">合計：<span id="closeTotal">0</span>円</div>
 <button id="closeBtn">レジ締め</button>
 <div id="msgClose"></div>
@@ -81,89 +108,14 @@ button { padding:12px; background:#e63333; color:white; border:none; border-radi
 <div id="msgExpense"></div>
 </div>
 
-<div class="tab-content" id="tab-inventory"><h2>在庫管理（そのまま）</h2></div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore,collection,addDoc,getDocs,serverTimestamp,query,where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { createMenu } from "./menu.js";
-
-/* ⭐ Firebase完全一致（超重要） */
-const firebaseConfig = {
- apiKey: "AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
- authDomain: "liagroup-a1ab1.firebaseapp.com",
- projectId: "liagroup-a1ab1",
- storageBucket: "liagroup-a1ab1.appspot.com",
- messagingSenderId: "361842389207",
- appId: "1:361842389207:web:1a7b92ef9d85b2726a4092"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-
-/* タブ */
-document.querySelectorAll(".tab").forEach(t=>{
- t.onclick=()=>{document.querySelectorAll(".tab,.tab-content").forEach(e=>e.classList.remove("active"));
- t.classList.add("active"); document.getElementById(t.dataset.tab).classList.add("active");}
-});
-
-/* 認証 */
-onAuthStateChanged(auth,(user)=>{
- if(user){
-  createMenu("レジ管理");
-  document.body.classList.remove("loading");
-  return;
- }
- setTimeout(()=>{ if(!auth.currentUser) location.replace("index.html"); },1000);
-});
-
-/* 合計計算 */
-const calc=(r)=> r.p10000.value*10000+r.p5000.value*5000+r.p1000.value*1000+r.p500.value*500+r.p100.value*100+r.p50.value*50+r.p10.value*10+r.p5.value*5+r.p1.value*1;
-
-function bind(prefix,totalEl){
- const ids=["10000","5000","1000","500","100","50","10","5","1"];
- const refs={}; ids.forEach(i=>refs["p"+i]=document.getElementById(prefix+i));
- ids.forEach(i=>refs["p"+i].oninput=()=> totalEl.textContent=calc(refs));
- return refs;
-}
-
-const openRefs=bind("o",openTotal);
-const closeRefs=bind("c",closeTotal);
-
-/* レジ開け */
-openBtn.onclick=async()=>{
- const total=calc(openRefs);
- await addDoc(collection(db,"registerOpen"),{total,uid:auth.currentUser.uid,createdAt:serverTimestamp()});
- msgOpen.textContent="保存完了";
-};
-
-/* レジ締め */
-closeBtn.onclick=async()=>{
- const total=calc(closeRefs);
- const today=new Date(); today.setHours(0,0,0,0);
-
- const openSnap=await getDocs(query(collection(db,"registerOpen"),where("createdAt",">=",today)));
- let open=0; openSnap.forEach(d=>open=d.data().total);
-
- const expSnap=await getDocs(query(collection(db,"expenses"),where("createdAt",">=",today)));
- let diff=0; expSnap.forEach(d=>{const e=d.data(); diff+=e.type==="in"?e.amount:-e.amount;});
-
- if(total!==open+diff){ msgClose.style.color="red"; msgClose.textContent="差異あり"; return;}
-
- await addDoc(collection(db,"registerClose"),{total,createdAt:serverTimestamp()});
- msgClose.textContent="締め完了";
-};
-
-/* 経費 */
-addExpense.onclick=async()=>{
- await addDoc(collection(db,"expenses"),{
-  type:type.value,item:item.value,staff:staff.value,amount:Number(amount.value),note:note.value,
-  uid:auth.currentUser.uid,createdAt:serverTimestamp()
- });
- msgExpense.textContent="登録完了";
-};
-</script>
-</body>
-</html>
+<!-- ⭐ 在庫管理復元 -->
+<div class="tab-content" id="tab-inventory">
+<h2>在庫管理</h2>
+<table id="inventoryTable">
+<thead>
+<tr><th>印刷</th><th>日付</th><th>店舗/案件/担当</th><th>品物名</th><th>在庫コード</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+<button id="printInventoryBtn">選択項目を印刷</button>
+</div>
