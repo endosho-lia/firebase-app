@@ -3,119 +3,160 @@
 <head>
 <meta charset="UTF-8">
 <title>レジ管理</title>
+
 <link rel="stylesheet" href="menu.css">
 
 <style>
-body.loading{ visibility:hidden; font-family: Arial, sans-serif; background:#e6d499; margin:0; }
+body{font-family:sans-serif;margin:0;background:#f5f5f5;}
+.container{padding:20px;}
+.tabs{display:flex;gap:10px;margin-bottom:20px;}
+.tab{padding:10px 16px;background:#ddd;border-radius:8px;cursor:pointer;}
+.tab.active{background:#4285f4;color:#fff;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
 
-/* タブ */
-.tabs { display:flex; justify-content:center; margin-top:20px; border-bottom:2px solid #ccc; }
-.tab { padding:10px 20px; cursor:pointer; font-weight:bold; font-family:"Hiragino Mincho ProN","Yu Mincho",serif; }
-.tab.active { border-bottom:3px solid #e63333; color:#e63333; }
+.money-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:420px;margin:auto;}
+.money-row{display:flex;justify-content:space-between;align-items:center;background:#fff;padding:8px 12px;border-radius:8px;}
+.money-row input{width:80px;text-align:center;font-size:16px;}
 
-.tab-content { display:none; max-width:900px; margin:20px auto; padding:20px; background:white; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
-.tab-content.active { display:block; }
+button{padding:10px 18px;border:none;border-radius:8px;background:#4285f4;color:#fff;cursor:pointer;}
+.total{text-align:center;font-size:20px;margin:15px 0;font-weight:bold;}
 
-/* ⭐ 金種入力デザイン */
-.money-table{
-  width:100%;
-  border-collapse:collapse;
-}
-.money-table td{
-  padding:6px;
-}
-.money-label{
-  text-align:right;
-  font-weight:bold;
-  width:120px;
-}
-.money-input input{
-  text-align:center;
-  font-size:16px;
-}
-
-.total{font-size:20px;font-weight:bold;margin-top:10px;text-align:center}
-
-input, select { width:100%; padding:10px; margin:4px 0; border-radius:6px; border:1px solid #ccc; }
-button { padding:12px; background:#e63333; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px; }
-
-/* 在庫 */
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ccc;padding:6px;text-align:center}
+table{width:100%;border-collapse:collapse;background:#fff;}
+td,th{border:1px solid #ddd;padding:6px;text-align:center;}
 </style>
 </head>
 
-<body class="loading">
+<body>
+
+<div class="container">
+
+<h2>レジ管理</h2>
 
 <div class="tabs">
-  <div class="tab active" data-tab="tab-open">レジ開け</div>
-  <div class="tab" data-tab="tab-close">レジ締め</div>
-  <div class="tab" data-tab="tab-expense">経費入出金</div>
-  <div class="tab" data-tab="tab-inventory">在庫管理</div>
+  <div class="tab active" onclick="switchTab(event,'open')">レジ開け</div>
+  <div class="tab" onclick="switchTab(event,'close')">レジ締め</div>
+  <div class="tab" onclick="switchTab(event,'expense')">経費</div>
+  <div class="tab" onclick="switchTab(event,'inventory')">在庫</div>
 </div>
 
-<!-- レジ開け -->
-<div class="tab-content active" id="tab-open">
-<h2>レジ開け</h2>
-
-<table class="money-table">
-<tr><td class="money-label">10000円</td><td class="money-input"><input id="o10000" type="number" value="0"></td></tr>
-<tr><td class="money-label">5000円</td><td class="money-input"><input id="o5000" type="number" value="0"></td></tr>
-<tr><td class="money-label">1000円</td><td class="money-input"><input id="o1000" type="number" value="0"></td></tr>
-<tr><td class="money-label">500円</td><td class="money-input"><input id="o500" type="number" value="0"></td></tr>
-<tr><td class="money-label">100円</td><td class="money-input"><input id="o100" type="number" value="0"></td></tr>
-<tr><td class="money-label">50円</td><td class="money-input"><input id="o50" type="number" value="0"></td></tr>
-<tr><td class="money-label">10円</td><td class="money-input"><input id="o10" type="number" value="0"></td></tr>
-<tr><td class="money-label">5円</td><td class="money-input"><input id="o5" type="number" value="0"></td></tr>
-<tr><td class="money-label">1円</td><td class="money-input"><input id="o1" type="number" value="0"></td></tr>
-</table>
-
-<div class="total">合計：<span id="openTotal">0</span>円</div>
-<button id="openBtn">レジ開け保存</button>
-<div id="msgOpen"></div>
+<div id="open" class="tab-content active">
+<div class="money-grid" id="openInputs"></div>
+<div class="total">¥<span id="openTotal">0</span></div>
+<button onclick="saveOpen()">保存</button>
 </div>
 
-<!-- レジ締め -->
-<div class="tab-content" id="tab-close">
-<h2>レジ締め</h2>
-
-<table class="money-table">
-<tr><td class="money-label">10000円</td><td class="money-input"><input id="c10000" type="number" value="0"></td></tr>
-<tr><td class="money-label">5000円</td><td class="money-input"><input id="c5000" type="number" value="0"></td></tr>
-<tr><td class="money-label">1000円</td><td class="money-input"><input id="c1000" type="number" value="0"></td></tr>
-<tr><td class="money-label">500円</td><td class="money-input"><input id="c500" type="number" value="0"></td></tr>
-<tr><td class="money-label">100円</td><td class="money-input"><input id="c100" type="number" value="0"></td></tr>
-<tr><td class="money-label">50円</td><td class="money-input"><input id="c50" type="number" value="0"></td></tr>
-<tr><td class="money-label">10円</td><td class="money-input"><input id="c10" type="number" value="0"></td></tr>
-<tr><td class="money-label">5円</td><td class="money-input"><input id="c5" type="number" value="0"></td></tr>
-<tr><td class="money-label">1円</td><td class="money-input"><input id="c1" type="number" value="0"></td></tr>
-</table>
-
-<div class="total">合計：<span id="closeTotal">0</span>円</div>
-<button id="closeBtn">レジ締め</button>
-<div id="msgClose"></div>
+<div id="close" class="tab-content">
+<div class="money-grid" id="closeInputs"></div>
+<div class="total">¥<span id="closeTotal">0</span></div>
+<button onclick="saveClose()">締め</button>
 </div>
 
-<!-- 経費 -->
-<div class="tab-content" id="tab-expense">
-<h2>経費入出金</h2>
-<select id="type"><option value="in">入金</option><option value="out">出金</option></select>
-<select id="item"><option>買取</option><option>交通費</option><option>備品</option><option>その他</option></select>
-<input id="staff" placeholder="担当者">
+<div id="expense" class="tab-content">
+<select id="type"><option>入金</option><option>出金</option></select>
+<input id="item" placeholder="項目">
 <input id="amount" type="number" placeholder="金額">
-<input id="note" placeholder="備考">
-<button id="addExpense">登録</button>
-<div id="msgExpense"></div>
+<input id="staff" placeholder="担当">
+<input id="memo" placeholder="備考">
+<button onclick="saveExpense()">追加</button>
 </div>
 
-<!-- ⭐ 在庫管理復元 -->
-<div class="tab-content" id="tab-inventory">
-<h2>在庫管理</h2>
+<div id="inventory" class="tab-content">
+<button id="printInventoryBtn">印刷</button>
 <table id="inventoryTable">
-<thead>
-<tr><th>印刷</th><th>日付</th><th>店舗/案件/担当</th><th>品物名</th><th>在庫コード</th></tr>
-</thead>
+<thead><tr><th>印刷</th><th>日付</th><th>案件</th><th>品名</th><th>バーコード</th></tr></thead>
 <tbody></tbody>
 </table>
-<button id="printInventoryBtn">選択項目を印刷</button>
 </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore,collection,addDoc,getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { createMenu } from "./menu.js";
+
+/* Firebase */
+const firebaseConfig={
+ apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
+ authDomain:"liagroup-a1ab1.firebaseapp.com",
+ projectId:"liagroup-a1ab1",
+ storageBucket:"liagroup-a1ab1.appspot.com",
+ messagingSenderId:"361842389207",
+ appId:"1:361842389207:web:1a7b92ef9d85b2726a4092"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+/* ⭐ログインチェック + メニュー生成 */
+onAuthStateChanged(auth,user=>{
+ if(!user){location.href="index.html";return;}
+ createMenu("レジ管理");
+});
+
+/* タブ */
+window.switchTab=(e,id)=>{
+ document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+ document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+ e.target.classList.add("active");
+ document.getElementById(id).classList.add("active");
+};
+
+/* 金種 */
+const money=[10000,5000,2000,1000,500,100,50,10,5,1];
+
+function createInputs(container,totalId){
+ const div=document.getElementById(container);
+ money.forEach(v=>{
+  const row=document.createElement("div");
+  row.className="money-row";
+  row.innerHTML=`${v}円 <input type="number" value="0" data-val="${v}">`;
+  div.appendChild(row);
+ });
+ div.addEventListener("input",()=>calc(container,totalId));
+}
+
+function calc(container,totalId){
+ let total=0;
+ document.querySelectorAll(`#${container} input`).forEach(i=>total+=i.value*i.dataset.val);
+ document.getElementById(totalId).textContent=total;
+ return total;
+}
+
+createInputs("openInputs","openTotal");
+createInputs("closeInputs","closeTotal");
+
+/* 保存 */
+window.saveOpen=async()=>addDoc(collection(db,"cashOpen"),{total:calc("openInputs","openTotal"),date:new Date()});
+window.saveClose=async()=>addDoc(collection(db,"cashClose"),{total:calc("closeInputs","closeTotal"),date:new Date()});
+window.saveExpense=async()=>addDoc(collection(db,"expenses"),{type:type.value,item:item.value,amount:+amount.value,staff:staff.value,memo:memo.value,date:new Date()});
+
+/* 在庫 */
+async function loadInventory(){
+ const tbody=document.querySelector("#inventoryTable tbody");
+ const snap=await getDocs(collection(db,"sales"));
+ snap.forEach(d=>{
+  const data=d.data();
+  tbody.innerHTML+=`<tr>
+  <td><input type="checkbox" class="printCheck"></td>
+  <td>${data.createdAt?.toDate().toLocaleDateString()||"-"}</td>
+  <td>${data.store||"天童"} ${data.caseNumber||""} ${data.user||""}</td>
+  <td>${data.product||""}</td>
+  <td>${data.barcode||"INV"+d.id.slice(0,6)}</td></tr>`;
+ });
+}
+loadInventory();
+
+printInventoryBtn.onclick=()=>{
+ const checked=document.querySelectorAll(".printCheck:checked");
+ if(!checked.length)return alert("選択なし");
+ const w=open("");
+ checked.forEach(c=>w.document.body.appendChild(c.closest("tr").cloneNode(true)));
+ w.print();
+};
+</script>
+</body>
+</html>
