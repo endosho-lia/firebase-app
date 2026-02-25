@@ -18,7 +18,6 @@ body.loading{ visibility:hidden; font-family: Arial, sans-serif; background:#e6d
 .money-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 input, select { width:100%; padding:10px; margin:4px 0; border-radius:6px; border:1px solid #ccc; }
 button { padding:12px; background:#e63333; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px; }
-
 .total{font-size:18px;font-weight:bold;margin-top:8px}
 </style>
 </head>
@@ -74,9 +73,7 @@ button { padding:12px; background:#e63333; color:white; border:none; border-radi
 <div class="tab-content" id="tab-expense">
 <h2>経費入出金</h2>
 <select id="type"><option value="in">入金</option><option value="out">出金</option></select>
-<select id="item">
-<option>買取</option><option>交通費</option><option>備品</option><option>その他</option>
-</select>
+<select id="item"><option>買取</option><option>交通費</option><option>備品</option><option>その他</option></select>
 <input id="staff" placeholder="担当者">
 <input id="amount" type="number" placeholder="金額">
 <input id="note" placeholder="備考">
@@ -84,9 +81,7 @@ button { padding:12px; background:#e63333; color:white; border:none; border-radi
 <div id="msgExpense"></div>
 </div>
 
-<div class="tab-content" id="tab-inventory">
-<h2>在庫管理（そのまま）</h2>
-</div>
+<div class="tab-content" id="tab-inventory"><h2>在庫管理（そのまま）</h2></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -94,51 +89,57 @@ import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/1
 import { getFirestore,collection,addDoc,getDocs,serverTimestamp,query,where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { createMenu } from "./menu.js";
 
-const app=initializeApp({apiKey:"AIza...",authDomain:"liagroup-a1ab1.firebaseapp.com",projectId:"liagroup-a1ab1"});
-const auth=getAuth(); const db=getFirestore();
+/* ⭐ Firebase完全一致（超重要） */
+const firebaseConfig = {
+ apiKey: "AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
+ authDomain: "liagroup-a1ab1.firebaseapp.com",
+ projectId: "liagroup-a1ab1",
+ storageBucket: "liagroup-a1ab1.appspot.com",
+ messagingSenderId: "361842389207",
+ appId: "1:361842389207:web:1a7b92ef9d85b2726a4092"
+};
 
+const app = initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+/* タブ */
 document.querySelectorAll(".tab").forEach(t=>{
  t.onclick=()=>{document.querySelectorAll(".tab,.tab-content").forEach(e=>e.classList.remove("active"));
  t.classList.add("active"); document.getElementById(t.dataset.tab).classList.add("active");}
 });
 
-onAuthStateChanged(auth, (user) => {
-
-  if (user) {
-    createMenu("レジ管理");
-    document.body.classList.remove("loading");
-    return;
-  }
-
-  // ★ 少し待ってから再確認（超重要）
-  setTimeout(() => {
-    if (!auth.currentUser) {
-      location.replace("index.html");
-    }
-  }, 700);
-
+/* 認証 */
+onAuthStateChanged(auth,(user)=>{
+ if(user){
+  createMenu("レジ管理");
+  document.body.classList.remove("loading");
+  return;
+ }
+ setTimeout(()=>{ if(!auth.currentUser) location.replace("index.html"); },1000);
 });
 
-const calc=(p)=> Number(p10000.value)*10000+Number(p5000.value)*5000+Number(p1000.value)*1000+Number(p500.value)*500+Number(p100.value)*100+Number(p50.value)*50+Number(p10.value)*10+Number(p5.value)*5+Number(p1.value);
-
-const openTotalEl=openTotal,closeTotalEl=closeTotal;
+/* 合計計算 */
+const calc=(r)=> r.p10000.value*10000+r.p5000.value*5000+r.p1000.value*1000+r.p500.value*500+r.p100.value*100+r.p50.value*50+r.p10.value*10+r.p5.value*5+r.p1.value*1;
 
 function bind(prefix,totalEl){
  const ids=["10000","5000","1000","500","100","50","10","5","1"];
  const refs={}; ids.forEach(i=>refs["p"+i]=document.getElementById(prefix+i));
- ids.forEach(i=>refs["p"+i].oninput=()=>totalEl.textContent=calc(refs));
+ ids.forEach(i=>refs["p"+i].oninput=()=> totalEl.textContent=calc(refs));
  return refs;
 }
 
-const openRefs=bind("o",openTotalEl);
-const closeRefs=bind("c",closeTotalEl);
+const openRefs=bind("o",openTotal);
+const closeRefs=bind("c",closeTotal);
 
+/* レジ開け */
 openBtn.onclick=async()=>{
  const total=calc(openRefs);
- await addDoc(collection(db,"registerOpen"),{total,createdAt:serverTimestamp(),uid:auth.currentUser.uid});
+ await addDoc(collection(db,"registerOpen"),{total,uid:auth.currentUser.uid,createdAt:serverTimestamp()});
  msgOpen.textContent="保存完了";
 };
 
+/* レジ締め */
 closeBtn.onclick=async()=>{
  const total=calc(closeRefs);
  const today=new Date(); today.setHours(0,0,0,0);
@@ -147,7 +148,7 @@ closeBtn.onclick=async()=>{
  let open=0; openSnap.forEach(d=>open=d.data().total);
 
  const expSnap=await getDocs(query(collection(db,"expenses"),where("createdAt",">=",today)));
- let diff=0; expSnap.forEach(d=>{const e=d.data(); diff+= e.type==="in"?e.amount:-e.amount;});
+ let diff=0; expSnap.forEach(d=>{const e=d.data(); diff+=e.type==="in"?e.amount:-e.amount;});
 
  if(total!==open+diff){ msgClose.style.color="red"; msgClose.textContent="差異あり"; return;}
 
@@ -155,10 +156,11 @@ closeBtn.onclick=async()=>{
  msgClose.textContent="締め完了";
 };
 
+/* 経費 */
 addExpense.onclick=async()=>{
  await addDoc(collection(db,"expenses"),{
   type:type.value,item:item.value,staff:staff.value,amount:Number(amount.value),note:note.value,
-  createdAt:serverTimestamp(),uid:auth.currentUser.uid
+  uid:auth.currentUser.uid,createdAt:serverTimestamp()
  });
  msgExpense.textContent="登録完了";
 };
