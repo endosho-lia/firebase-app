@@ -15,7 +15,7 @@ body{font-family:sans-serif;margin:0;background:#f5f5f5;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
-.money-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:420px;margin:auto;}
+.money-grid{display:grid;grid-template-columns:1fr;gap:10px;max-width:260px;margin:auto;}
 .money-row{display:flex;justify-content:space-between;align-items:center;background:#fff;padding:8px 12px;border-radius:8px;}
 .money-row input{width:80px;text-align:center;font-size:16px;}
 
@@ -106,7 +106,7 @@ window.switchTab=(e,id)=>{
 };
 
 /* 金種 */
-const money=[10000,5000,2000,1000,500,100,50,10,5,1];
+const money=[10000,5000,1000,500,100,50,10,5,1];
 
 function createInputs(container,totalId){
  const div=document.getElementById(container);
