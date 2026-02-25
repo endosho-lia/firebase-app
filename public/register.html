@@ -102,7 +102,22 @@ document.querySelectorAll(".tab").forEach(t=>{
  t.classList.add("active"); document.getElementById(t.dataset.tab).classList.add("active");}
 });
 
-onAuthStateChanged(auth,u=>{ if(!u)location="index.html"; createMenu("レジ管理"); document.body.classList.remove("loading"); });
+onAuthStateChanged(auth, (user) => {
+
+  if (user) {
+    createMenu("レジ管理");
+    document.body.classList.remove("loading");
+    return;
+  }
+
+  // ★ 少し待ってから再確認（超重要）
+  setTimeout(() => {
+    if (!auth.currentUser) {
+      location.replace("index.html");
+    }
+  }, 700);
+
+});
 
 const calc=(p)=> Number(p10000.value)*10000+Number(p5000.value)*5000+Number(p1000.value)*1000+Number(p500.value)*500+Number(p100.value)*100+Number(p50.value)*50+Number(p10.value)*10+Number(p5.value)*5+Number(p1.value);
 
