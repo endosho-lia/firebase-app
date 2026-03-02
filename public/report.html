@@ -9,57 +9,75 @@
 body{font-family:sans-serif;margin:0;background:#f5f5f5}
 .container{padding:20px;max-width:900px;margin:auto}
 
-input,select,textarea{
- width:100%;padding:8px;margin:4px 0;border-radius:6px;border:1px solid #ccc
-}
+h2{margin-bottom:10px}
 
-button{
- padding:10px 16px;background:#4285f4;color:#fff;border:none;border-radius:8px;cursor:pointer
-}
+/* 基本情報 */
+.basic-group label{font-weight:bold}
+.basic-group input{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:6px}
 
+/* 明細表 */
 table{width:100%;border-collapse:collapse;background:#fff;margin-top:10px}
-td,th{border:1px solid #ddd;padding:6px;text-align:center}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+.addLineBtn{margin-top:10px;padding:8px 14px;background:#4285f4;color:white;border:none;border-radius:6px;cursor:pointer}
 
-.addBtn{margin:10px 0}
+/* 保存ボタン */
+.saveBtn{display:block;width:100%;padding:12px;background:#e63333;color:white;border:none;border-radius:6px;font-size:18px;cursor:pointer;margin-top:20px}
 </style>
 </head>
-
 <body>
+
 <div id="menu"></div>
 
 <div class="container">
 
 <h2>日報入力</h2>
 
+<!-- 基本情報 -->
+<div class="basic-group">
+<label>日付</label>
+<input type="date" id="reportDate">
+
 <label>店舗</label>
-<input id="store" value="天童">
+<input type="text" id="store" placeholder="例：天童">
 
 <label>担当者</label>
-<input id="staff">
+<input type="text" id="staff">
 
 <label>案件番号</label>
-<input id="caseNumber" readonly>
+<input type="text" id="caseNo" readonly>
+</div>
 
-<h3>買取内容</h3>
-
-<button class="addBtn" onclick="addRow()">＋追加</button>
-
-<table id="buyTable">
+<!-- 明細 -->
+<h3>買い取り明細</h3>
+<table id="detailTable">
 <thead>
 <tr>
 <th>品目</th>
-<th>品物名</th>
-<th>買取金額</th>
-<th>販売見込</th>
-<th>メモ</th>
+<th>品名</th>
+<th>数量</th>
+<th>単価</th>
+<th>金額</th>
+<th>備考</th>
 <th></th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
+<button class="addLineBtn" onclick="addLine()">＋行追加</button>
 
-<br>
-<button onclick="saveReport()">日報保存</button>
+<!-- 支払/入金 -->
+<h3>レジ・経費</h3>
+<label>レジ入金</label>
+<input type="number" id="regiIncome" placeholder="例：10000">
+
+<label>経費出金</label>
+<input type="number" id="expenseOut" placeholder="例：5000">
+
+<!-- 全体メモ -->
+<label>備考 / その他</label>
+<textarea id="reportMemo" rows="3" style="width:100%;border:1px solid #ccc;border-radius:6px"></textarea>
+
+<button class="saveBtn" onclick="saveReport()">日報を保存</button>
 
 </div>
 
@@ -69,11 +87,11 @@ td,th{border:1px solid #ddd;padding:6px;text-align:center}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
- getFirestore,collection,addDoc,getDocs,query,where,serverTimestamp
+  getFirestore,collection,addDoc,serverTimestamp,getDocs,query,where
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /* Firebase */
-const firebaseConfig={
+const firebaseConfig = {
  apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
  authDomain:"liagroup-a1ab1.firebaseapp.com",
  projectId:"liagroup-a1ab1",
@@ -81,88 +99,108 @@ const firebaseConfig={
  messagingSenderId:"361842389207",
  appId:"1:361842389207:web:1a7b92ef9d85b2726a4092"
 };
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 
 /* 認証 */
 onAuthStateChanged(auth,user=>{
- if(!user){location.href="index.html";return;}
- document.getElementById("staff").value=user.email;
- generateCase();
+ if(!user){location.replace("index.html");return;}
+ createMenu("日報管理");
 });
 
-/* 案件番号生成 */
-async function generateCase(){
- const today=new Date();
- const key=today.toISOString().slice(0,10).replaceAll("-","");
- const snap=await getDocs(query(collection(db,"sales"),where("dateKey","==",key)));
- document.getElementById("caseNumber").value=`${key}-${snap.size+1}`;
+/* 案件番号自動 */
+async function genCase(){
+ const date=document.getElementById("reportDate").value.replaceAll("-","");
+ const q=query(collection(db,"reports"),where("dateKey","==",date));
+ const snap=await getDocs(q);
+ document.getElementById("caseNo").value=`${date}-${snap.size+1}`;
 }
 
-/* 行追加 */
-window.addRow=()=>{
+/* 日付変更で案件番号更新 */
+document.getElementById("reportDate").addEventListener("change",genCase);
+
+/* 明細行追加 */
+function addLine(){
  const tr=document.createElement("tr");
  tr.innerHTML=`
   <td><input class="item"></td>
   <td><input class="name"></td>
-  <td><input type="number" class="price"></td>
-  <td><input type="number" class="expect"></td>
-  <td><input class="memo"></td>
+  <td><input type="number" class="qty" value="1"></td>
+  <td><input type="number" class="unit" value="0"></td>
+  <td class="amt">0</td>
+  <td><input class="note"></td>
   <td><button onclick="this.closest('tr').remove()">削除</button></td>
  `;
- document.querySelector("#buyTable tbody").appendChild(tr);
-};
-addRow();
+ tr.querySelector(".qty").oninput=()=>calcRow(tr);
+ tr.querySelector(".unit").oninput=()=>calcRow(tr);
+ document.querySelector("#detailTable tbody").appendChild(tr);
+}
+addLine();
+
+/* 行金額 */
+function calcRow(tr){
+ const q=Number(tr.querySelector(".qty").value);
+ const u=Number(tr.querySelector(".unit").value);
+ tr.querySelector(".amt").textContent=(q*u).toLocaleString();
+}
 
 /* 保存 */
-window.saveReport=async()=>{
- const rows=document.querySelectorAll("#buyTable tbody tr");
- if(!rows.length){alert("入力なし");return;}
+async function saveReport(){
+ const dateVal=document.getElementById("reportDate").value;
+ const storeVal=document.getElementById("store").value;
+ const staffVal=document.getElementById("staff").value;
+ const caseVal=document.getElementById("caseNo").value;
+ const reportMemo=document.getElementById("reportMemo").value;
 
- const caseNo=caseNumber.value;
- const storeVal=store.value;
- const staffVal=staff.value;
+const summaryRef=await addDoc(collection(db,"reports"),{
+ date:dateVal,store:storeVal,staff:staffVal,caseNo,reportMemo,
+ dateKey:dateVal.replaceAll("-",""),createdAt:serverTimestamp()
+});
 
- const today=new Date();
- const dateKey=today.toISOString().slice(0,10).replaceAll("-","");
+/* 明細 sales */
+document.querySelectorAll("#detailTable tbody tr").forEach(async tr=>{
+ const item=tr.querySelector(".item").value;
+ const name=tr.querySelector(".name").value;
+ const qty=Number(tr.querySelector(".qty").value);
+ const unit=Number(tr.querySelector(".unit").value);
+ const amount=qty*unit;
+ const note=tr.querySelector(".note").value;
 
- for(const r of rows){
-  const item=r.querySelector(".item").value;
-  const name=r.querySelector(".name").value;
-  const price=Number(r.querySelector(".price").value||0);
-  const expect=Number(r.querySelector(".expect").value||0);
-  const memo=r.querySelector(".memo").value;
+ await addDoc(collection(db,"sales"),{
+  reportId:summaryRef.id,
+  item,name,qty,unit,amount,note,
+  store:storeVal,staff:staffVal,caseNo,
+  createdAt:serverTimestamp()
+ });
 
-  const doc=await addDoc(collection(db,"sales"),{
-   item,name,price,expect,memo,
-   caseNumber:caseNo,
-   store:storeVal,
-   user:staffVal,
-   barcode:"INV"+Math.random().toString(36).substring(2,8),
-   dateKey,
-   createdAt:serverTimestamp()
+ /* 自動出金 */
+ if(amount>0){
+  await addDoc(collection(db,"expenses"),{
+   type:"out",
+   item:"買取",
+   amount,caseNo,createdAt:serverTimestamp()
   });
-
-  /* 🔥 自動出金 */
-  if(price>0){
-   await addDoc(collection(db,"expenses"),{
-    type:"out",
-    item:"買取",
-    amount:price,
-    note:name,
-    caseNumber:caseNo,
-    createdAt:serverTimestamp()
-   });
-  }
  }
+});
 
- alert("日報保存完了");
- generateCase();
- document.querySelector("#buyTable tbody").innerHTML="";
- addRow();
-};
+/* レジ/経費 */
+const regi=Number(document.getElementById("regiIncome").value);
+if(regi>0){
+ await addDoc(collection(db,"expenses"),{
+  type:"in",item:"現金売上",amount:regi,caseNo,createdAt:serverTimestamp()
+ });
+}
+const expOut=Number(document.getElementById("expenseOut").value);
+if(expOut>0){
+ await addDoc(collection(db,"expenses"),{
+  type:"out",item:"経費",amount:expOut,caseNo,createdAt:serverTimestamp()
+ });
+}
+
+alert("日報保存完了");
+}
 </script>
+
 </body>
 </html>
