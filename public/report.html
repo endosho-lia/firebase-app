@@ -15,6 +15,21 @@ input,select,textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:6px;text-align:center}
 .saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px}
+
+.toggleWrap{display:flex;gap:10px;margin-bottom:15px}
+.toggleBtn{
+ flex:1;
+ padding:12px;
+ font-size:18px;
+ border:none;
+ border-radius:10px;
+ cursor:pointer;
+ background:#ccc;
+ color:white;
+}
+.winActive{background:#2e7d32}
+.loseActive{background:#c62828}
+
 .cards{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .card{padding:10px;border-radius:8px;color:white;min-width:200px}
 .win{background:#2e7d32}
@@ -26,52 +41,17 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <div class="container">
 <h2>日報入力</h2>
 
-<div class="section">
-<label><input type="checkbox" id="isWin"> 成約</label>
+<!-- 切替ボタン -->
+<div class="toggleWrap">
+<button id="winBtn" class="toggleBtn">成約</button>
+<button id="loseBtn" class="toggleBtn">失注</button>
 </div>
 
 <!-- 成約フォーム -->
 <div id="winForm" class="section hidden">
-
-<div class="flex">
-<div><label>来店時間</label><input type="time" id="visitTime"></div>
-<div><label>営業形態</label><input id="salesType"></div>
-<div><label>媒体</label><input id="media"></div>
-</div>
-
-<div class="flex">
-<div><label>担当者</label><input id="staff"></div>
-<div><label>姓</label><input id="lastName"></div>
-<div><label>名</label><input id="firstName"></div>
-</div>
-
-<div class="flex">
-<div>
-<label>性別</label>
-<select id="gender">
-<option value="男性">男性</option>
-<option value="女性">女性</option>
-</select>
-</div>
-<div><label>生年月日</label><input type="date" id="birth"></div>
-<div><label>年齢</label><input id="age" readonly></div>
-</div>
-
-<label>職業</label><input id="job">
-<label>メイン品目</label><input id="mainItem">
-<label>電話番号</label><input id="phone">
-<label>郵便番号</label><input id="zip">
-
-<div class="flex">
-<div><label>県</label><input id="pref"></div>
-<div><label>市区</label><input id="city"></div>
-<div><label>町</label><input id="town"></div>
-</div>
-
-<label>番地など</label><input id="address">
-
-<label><input type="checkbox" id="thanks"> 初回お礼手紙</label>
-<label><input type="checkbox" id="review"> 口コミ獲得</label>
+<h3>成約情報</h3>
+<input id="lastName" placeholder="姓">
+<input id="firstName" placeholder="名">
 
 <h3>買取品目</h3>
 <table id="itemTable">
@@ -80,20 +60,16 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </thead>
 <tbody></tbody>
 </table>
-
 <button type="button" id="addBtn">＋追加</button>
 
 <h4>買取合計: <span id="buyTotal">0</span> 円</h4>
 <h4>売上合計: <span id="sellTotal">0</span> 円</h4>
-
 </div>
 
 <!-- 失注フォーム -->
 <div id="loseForm" class="section hidden">
-<label>来店時間</label><input type="time" id="loseTime">
-<label>媒体</label><input id="loseMedia">
-<label>品目</label><input id="loseItem">
-<label>失注理由</label><textarea id="loseReason"></textarea>
+<h3>失注情報</h3>
+<textarea id="loseReason" placeholder="失注理由"></textarea>
 </div>
 
 <button class="saveBtn" id="saveBtn">保存</button>
@@ -104,12 +80,10 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore,collection,addDoc,serverTimestamp,getDocs,query,where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-/* Firebase設定 */
-const firebaseConfig = {
+const firebaseConfig={
  apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
  authDomain:"liagroup-a1ab1.firebaseapp.com",
  projectId:"liagroup-a1ab1",
@@ -121,40 +95,32 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
-/* DOM取得 */
-const isWin=document.getElementById("isWin");
+/* DOM */
+const winBtn=document.getElementById("winBtn");
+const loseBtn=document.getElementById("loseBtn");
 const winForm=document.getElementById("winForm");
 const loseForm=document.getElementById("loseForm");
-const birth=document.getElementById("birth");
-const zip=document.getElementById("zip");
 const buyTotal=document.getElementById("buyTotal");
 const sellTotal=document.getElementById("sellTotal");
 const todayCards=document.getElementById("todayCards");
 
-/* 成約切替 */
-isWin.addEventListener("change",()=>{
- winForm.classList.toggle("hidden",!isWin.checked);
- loseForm.classList.toggle("hidden",isWin.checked);
+let isWin=null;
+
+/* ボタン切替 */
+winBtn.addEventListener("click",()=>{
+ isWin=true;
+ winForm.classList.remove("hidden");
+ loseForm.classList.add("hidden");
+ winBtn.classList.add("winActive");
+ loseBtn.classList.remove("loseActive");
 });
 
-/* 年齢自動計算 */
-birth.addEventListener("change",()=>{
- const b=new Date(birth.value);
- const today=new Date();
- let age=today.getFullYear()-b.getFullYear();
- if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) age--;
- document.getElementById("age").value=age;
-});
-
-/* 郵便番号自動 */
-zip.addEventListener("blur",async()=>{
- const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip.value}`);
- const data=await res.json();
- if(data.results){
-  document.getElementById("pref").value=data.results[0].address1;
-  document.getElementById("city").value=data.results[0].address2;
-  document.getElementById("town").value=data.results[0].address3;
- }
+loseBtn.addEventListener("click",()=>{
+ isWin=false;
+ loseForm.classList.remove("hidden");
+ winForm.classList.add("hidden");
+ loseBtn.classList.add("loseActive");
+ winBtn.classList.remove("winActive");
 });
 
 /* 行追加 */
@@ -170,11 +136,10 @@ function addRow(){
  tr.querySelectorAll("input").forEach(i=>i.addEventListener("input",calc));
  document.querySelector("#itemTable tbody").appendChild(tr);
 }
-
 document.getElementById("addBtn").addEventListener("click",addRow);
 addRow();
 
-/* 合計計算 */
+/* 合計 */
 function calc(){
  let buy=0,sell=0;
  document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value||0));
@@ -185,17 +150,22 @@ function calc(){
 
 /* 保存 */
 document.getElementById("saveBtn").addEventListener("click",async()=>{
+ if(isWin===null){
+  alert("成約か失注を選択してください");
+  return;
+ }
+
  const today=new Date().toISOString().split("T")[0];
 
  const data={
-  isWin:isWin.checked,
+  isWin,
   date:today,
   buyTotal:Number(buyTotal.textContent.replace(/,/g,"")),
   sellTotal:Number(sellTotal.textContent.replace(/,/g,"")),
   createdAt:serverTimestamp()
  };
 
- if(isWin.checked){
+ if(isWin){
   data.lastName=document.getElementById("lastName").value;
   data.firstName=document.getElementById("firstName").value;
  }else{
