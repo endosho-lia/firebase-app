@@ -16,12 +16,10 @@ input,select,textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ddd;padding:6px;text-align:center}
 .saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px;margin-top:15px}
-
 .toggleWrap{display:flex;gap:10px;margin-bottom:15px}
 .toggleBtn{flex:1;padding:14px;font-size:18px;border:none;border-radius:10px;cursor:pointer;background:#ccc;color:white;}
 .winActive{background:#2e7d32}
 .loseActive{background:#c62828}
-
 .cards{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .card{padding:10px;border-radius:8px;color:white;min-width:220px}
 .win{background:#2e7d32}
@@ -39,6 +37,7 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <button id="loseBtn" class="toggleBtn">失注</button>
 </div>
 
+<!-- 成約フォーム -->
 <div id="winForm" class="section hidden">
 
 <h3>顧客検索</h3>
@@ -50,6 +49,13 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <h3>顧客情報</h3>
 
 <div class="flex">
+<div><label>来店時間</label><input type="time" id="visitTime"></div>
+<div><label>営業形態</label><input id="salesType"></div>
+<div><label>媒体</label><input id="media"></div>
+</div>
+
+<div class="flex">
+<div><label>担当者</label><input id="staff"></div>
 <div><label>姓</label><input id="lastName"></div>
 <div><label>名</label><input id="firstName"></div>
 </div>
@@ -79,6 +85,30 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <label>番地など</label><input id="address">
 
+<label><input type="checkbox" id="thanks"> 初回お礼手紙</label>
+<label><input type="checkbox" id="review"> 口コミ獲得</label>
+
+<h3>買取品目</h3>
+<table id="itemTable">
+<thead>
+<tr><th>品目</th><th>買取価格</th><th>売上価格</th><th></th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<button type="button" id="addBtn">＋追加</button>
+
+<h4>買取合計: <span id="buyTotal">0</span> 円</h4>
+<h4>売上合計: <span id="sellTotal">0</span> 円</h4>
+
+</div>
+
+<!-- 失注フォーム -->
+<div id="loseForm" class="section hidden">
+<label>来店時間</label><input type="time" id="loseTime">
+<label>媒体</label><input id="loseMedia">
+<label>品目</label><input id="loseItem">
+<label>失注理由</label><textarea id="loseReason"></textarea>
 </div>
 
 <button class="saveBtn" id="saveBtn">保存</button>
@@ -91,14 +121,8 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore,
-         collection,
-         addDoc,
-         query,
-         where,
-         getDocs,
-         serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore,collection,addDoc,query,where,getDocs,serverTimestamp }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { createMenu } from "./menu.js";
 
 /* Firebase */
@@ -122,15 +146,32 @@ onAuthStateChanged(auth,user=>{
 
 /* DOM */
 const winBtn=document.getElementById("winBtn");
+const loseBtn=document.getElementById("loseBtn");
 const winForm=document.getElementById("winForm");
+const loseForm=document.getElementById("loseForm");
+const buyTotal=document.getElementById("buyTotal");
+const sellTotal=document.getElementById("sellTotal");
 const todayCards=document.getElementById("todayCards");
 
+let isWin=null;
+
+/* 切替 */
 winBtn.onclick=()=>{
+ isWin=true;
  winForm.classList.remove("hidden");
+ loseForm.classList.add("hidden");
  winBtn.classList.add("winActive");
+ loseBtn.classList.remove("loseActive");
+};
+loseBtn.onclick=()=>{
+ isWin=false;
+ loseForm.classList.remove("hidden");
+ winForm.classList.add("hidden");
+ loseBtn.classList.add("loseActive");
+ winBtn.classList.remove("winActive");
 };
 
-/* 年齢自動計算 */
+/* 年齢自動 */
 birth.addEventListener("change",()=>{
  const b=new Date(birth.value);
  const today=new Date();
@@ -139,7 +180,7 @@ birth.addEventListener("change",()=>{
  age.value=ageCalc;
 });
 
-/* 郵便番号→住所 */
+/* 郵便番号 */
 zip.addEventListener("blur",async()=>{
  const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip.value}`);
  const data=await res.json();
@@ -156,24 +197,40 @@ searchBtn.onclick=async()=>{
  const snap=await getDocs(q);
  if(snap.empty){alert("顧客なし");return;}
  const d=snap.docs[0].data();
-
- lastName.value=d.lastName||"";
- firstName.value=d.firstName||"";
- gender.value=d.gender||"男性";
- birth.value=d.birth||"";
- age.value=d.age||"";
- job.value=d.job||"";
- mainItem.value=d.mainItem||"";
- phone.value=d.phone||"";
- zip.value=d.zip||"";
- pref.value=d.pref||"";
- city.value=d.city||"";
- town.value=d.town||"";
- address.value=d.address||"";
+ Object.keys(d).forEach(k=>{
+   if(document.getElementById(k)) document.getElementById(k).value=d[k];
+ });
 };
+
+/* 品目追加 */
+function addRow(){
+ const tr=document.createElement("tr");
+ tr.innerHTML=`
+ <td><input class="item"></td>
+ <td><input type="number" class="buy" value="0"></td>
+ <td><input type="number" class="sell" value="0"></td>
+ <td><button type="button" class="delBtn">削除</button></td>
+ `;
+ tr.querySelector(".delBtn").onclick=()=>{tr.remove();calc();}
+ tr.querySelectorAll("input").forEach(i=>i.oninput=calc);
+ document.querySelector("#itemTable tbody").appendChild(tr);
+}
+addBtn.onclick=addRow;
+addRow();
+
+/* 合計 */
+function calc(){
+ let buy=0,sell=0;
+ document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value||0));
+ document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value||0));
+ buyTotal.textContent=buy.toLocaleString();
+ sellTotal.textContent=sell.toLocaleString();
+}
 
 /* 保存 */
 saveBtn.onclick=async()=>{
+ if(isWin===null){alert("成約か失注を選択");return;}
+
  const today=new Date().toISOString().split("T")[0];
 
  const customerData={
@@ -189,27 +246,31 @@ saveBtn.onclick=async()=>{
   pref:pref.value,
   city:city.value,
   town:town.value,
-  address:address.value,
-  updatedAt:serverTimestamp()
+  address:address.value
  };
 
- await addDoc(collection(db,"reports"),{
+ const data={
   ...customerData,
+  isWin,
   date:today,
+  buyTotal:Number(buyTotal.textContent.replace(/,/g,"")),
+  sellTotal:Number(sellTotal.textContent.replace(/,/g,"")),
   createdAt:serverTimestamp()
- });
+ };
+
+ if(!isWin) data.loseReason=loseReason.value;
+
+ await addDoc(collection(db,"reports"),data);
 
  const q=query(collection(db,"customers"),where("phone","==",phone.value));
  const snap=await getDocs(q);
- if(snap.empty){
-   await addDoc(collection(db,"customers"),customerData);
- }
+ if(snap.empty) await addDoc(collection(db,"customers"),customerData);
 
  alert("保存完了");
  loadToday();
 };
 
-/* 本日表示 */
+/* 当日表示 */
 async function loadToday(){
  todayCards.innerHTML="";
  const today=new Date().toISOString().split("T")[0];
@@ -218,8 +279,10 @@ async function loadToday(){
  snap.forEach(doc=>{
   const d=doc.data();
   const div=document.createElement("div");
-  div.className="card win";
-  div.innerHTML=`${d.lastName||""} ${d.firstName||""}<br>${d.phone||""}`;
+  div.className="card "+(d.isWin?"win":"lose");
+  div.innerHTML=d.isWin
+   ? `${d.lastName||""} ${d.firstName||""}<br>買取:${d.buyTotal||0}円`
+   : `失注<br>${d.loseReason||""}`;
   todayCards.appendChild(div);
  });
 }
