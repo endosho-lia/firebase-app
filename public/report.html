@@ -3,32 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>日報管理</title>
+
 <style>
 body{font-family:sans-serif;background:#f4f4f4;margin:0}
 .container{max-width:1000px;margin:auto;padding:20px}
-h2{margin:10px 0}
-
 .section{background:white;padding:15px;margin-bottom:15px;border-radius:10px}
 input,select,textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:6px}
-
 .flex{display:flex;gap:10px}
 .flex>div{flex:1}
-
 .hidden{display:none}
-
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #ddd;padding:6px;text-align:center}
-
 .saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px}
-
 .cards{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .card{padding:10px;border-radius:8px;color:white;min-width:200px}
 .win{background:#2e7d32}
 .lose{background:#c62828}
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 <h2>日報入力</h2>
 
@@ -38,8 +32,6 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <!-- 成約フォーム -->
 <div id="winForm" class="section hidden">
-
-<h3>顧客情報</h3>
 
 <div class="flex">
 <div><label>来店時間</label><input type="time" id="visitTime"></div>
@@ -54,11 +46,13 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </div>
 
 <div class="flex">
-<div><label>性別</label>
+<div>
+<label>性別</label>
 <select id="gender">
-<option>男性</option>
-<option>女性</option>
-</select></div>
+<option value="男性">男性</option>
+<option value="女性">女性</option>
+</select>
+</div>
 <div><label>生年月日</label><input type="date" id="birth"></div>
 <div><label>年齢</label><input id="age" readonly></div>
 </div>
@@ -86,7 +80,8 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </thead>
 <tbody></tbody>
 </table>
-<button onclick="addRow()">＋追加</button>
+
+<button type="button" id="addBtn">＋追加</button>
 
 <h4>買取合計: <span id="buyTotal">0</span> 円</h4>
 <h4>売上合計: <span id="sellTotal">0</span> 円</h4>
@@ -101,7 +96,7 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <label>失注理由</label><textarea id="loseReason"></textarea>
 </div>
 
-<button class="saveBtn" onclick="saveData()">保存</button>
+<button class="saveBtn" id="saveBtn">保存</button>
 
 <h3>本日の日報</h3>
 <div class="cards" id="todayCards"></div>
@@ -109,10 +104,11 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore,collection,addDoc,serverTimestamp,getDocs,query,where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-/* Firebase */
+/* Firebase設定 */
 const firebaseConfig = {
  apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
  authDomain:"liagroup-a1ab1.firebaseapp.com",
@@ -121,36 +117,45 @@ const firebaseConfig = {
  messagingSenderId:"361842389207",
  appId:"1:361842389207:web:1a7b92ef9d85b2726a4092"
 };
+
 const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
 const db=getFirestore(app);
 
-/* 成約切替 */
-const check=document.getElementById("isWin");
-check.onchange=()=>{
- document.getElementById("winForm").classList.toggle("hidden",!check.checked);
- document.getElementById("loseForm").classList.toggle("hidden",check.checked);
-};
+/* DOM取得 */
+const isWin=document.getElementById("isWin");
+const winForm=document.getElementById("winForm");
+const loseForm=document.getElementById("loseForm");
+const birth=document.getElementById("birth");
+const zip=document.getElementById("zip");
+const buyTotal=document.getElementById("buyTotal");
+const sellTotal=document.getElementById("sellTotal");
+const todayCards=document.getElementById("todayCards");
 
-/* 年齢自動 */
-birth.onchange=()=>{
+/* 成約切替 */
+isWin.addEventListener("change",()=>{
+ winForm.classList.toggle("hidden",!isWin.checked);
+ loseForm.classList.toggle("hidden",isWin.checked);
+});
+
+/* 年齢自動計算 */
+birth.addEventListener("change",()=>{
  const b=new Date(birth.value);
  const today=new Date();
  let age=today.getFullYear()-b.getFullYear();
- if(today<b.setFullYear(today.getFullYear())) age--;
+ if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) age--;
  document.getElementById("age").value=age;
-};
+});
 
 /* 郵便番号自動 */
-zip.onblur=async()=>{
+zip.addEventListener("blur",async()=>{
  const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip.value}`);
  const data=await res.json();
  if(data.results){
-  pref.value=data.results[0].address1;
-  city.value=data.results[0].address2;
-  town.value=data.results[0].address3;
+  document.getElementById("pref").value=data.results[0].address1;
+  document.getElementById("city").value=data.results[0].address2;
+  document.getElementById("town").value=data.results[0].address3;
  }
-};
+});
 
 /* 行追加 */
 function addRow(){
@@ -159,42 +164,48 @@ function addRow(){
  <td><input class="item"></td>
  <td><input type="number" class="buy" value="0"></td>
  <td><input type="number" class="sell" value="0"></td>
- <td><button onclick="this.closest('tr').remove();calc()">削除</button></td>
+ <td><button type="button" class="delBtn">削除</button></td>
  `;
- tr.querySelectorAll("input").forEach(i=>i.oninput=calc);
+ tr.querySelector(".delBtn").addEventListener("click",()=>{tr.remove();calc();});
+ tr.querySelectorAll("input").forEach(i=>i.addEventListener("input",calc));
  document.querySelector("#itemTable tbody").appendChild(tr);
 }
+
+document.getElementById("addBtn").addEventListener("click",addRow);
 addRow();
 
-/* 合計 */
+/* 合計計算 */
 function calc(){
  let buy=0,sell=0;
- document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value));
- document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value));
+ document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value||0));
+ document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value||0));
  buyTotal.textContent=buy.toLocaleString();
  sellTotal.textContent=sell.toLocaleString();
 }
 
 /* 保存 */
-async function saveData(){
- const isWin=check.checked;
+document.getElementById("saveBtn").addEventListener("click",async()=>{
  const today=new Date().toISOString().split("T")[0];
 
- const data={isWin,date:today,createdAt:serverTimestamp()};
+ const data={
+  isWin:isWin.checked,
+  date:today,
+  buyTotal:Number(buyTotal.textContent.replace(/,/g,"")),
+  sellTotal:Number(sellTotal.textContent.replace(/,/g,"")),
+  createdAt:serverTimestamp()
+ };
 
- if(isWin){
-  data.lastName=lastName.value;
-  data.firstName=firstName.value;
-  data.buyTotal=buyTotal.textContent.replace(/,/g,"");
-  data.sellTotal=sellTotal.textContent.replace(/,/g,"");
+ if(isWin.checked){
+  data.lastName=document.getElementById("lastName").value;
+  data.firstName=document.getElementById("firstName").value;
  }else{
-  data.loseReason=loseReason.value;
+  data.loseReason=document.getElementById("loseReason").value;
  }
 
  await addDoc(collection(db,"reports"),data);
  alert("保存完了");
  loadToday();
-}
+});
 
 /* 当日表示 */
 async function loadToday(){
@@ -207,8 +218,8 @@ async function loadToday(){
   const div=document.createElement("div");
   div.className="card "+(d.isWin?"win":"lose");
   div.innerHTML=d.isWin?
-   `${d.lastName} ${d.firstName}<br>買取:${d.buyTotal}円`:
-   `失注<br>${d.loseReason}`;
+   `${d.lastName||""} ${d.firstName||""}<br>買取:${d.buyTotal||0}円`:
+   `失注<br>${d.loseReason||""}`;
   todayCards.appendChild(div);
  });
 }
