@@ -3,84 +3,218 @@
 <head>
 <meta charset="UTF-8">
 <title>日報管理</title>
-<link rel="stylesheet" href="menu.css">
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, getDocs, query, where,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ================= Firebase ================= */
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ================= 年齢自動計算 ================= */
+
+window.calcAge = function(){
+  const birth = document.getElementById("birth").value;
+  if(!birth) return;
+  const today = new Date();
+  const b = new Date(birth);
+  let age = today.getFullYear() - b.getFullYear();
+  if(today < new Date(today.getFullYear(), b.getMonth(), b.getDate())){
+    age--;
+  }
+  document.getElementById("age").value = age;
+};
+
+/* ================= 郵便番号自動反映 ================= */
+
+window.searchZip = async function(){
+  const zip = document.getElementById("zip").value;
+  if(zip.length !== 7) return;
+
+  const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+  const data = await res.json();
+
+  if(data.results){
+    document.getElementById("pref").value = data.results[0].address1;
+    document.getElementById("city").value = data.results[0].address2;
+    document.getElementById("town").value = data.results[0].address3;
+  }
+};
+
+/* ================= 顧客検索 ================= */
+
+window.searchCustomer = async function(){
+
+  const phone = document.getElementById("phoneSearch").value;
+  if(!phone){
+    alert("電話番号を入力してください");
+    return;
+  }
+
+  const q = query(collection(db,"customers"), where("phone","==",phone));
+  const snap = await getDocs(q);
+
+  if(snap.empty){
+    alert("顧客が見つかりません");
+    return;
+  }
+
+  const d = snap.docs[0].data();
+
+  lastName.value = d.lastName || "";
+  firstName.value = d.firstName || "";
+  gender.value = d.gender || "男性";
+  birth.value = d.birth || "";
+  age.value = d.age || "";
+  job.value = d.job || "";
+  mainItem.value = d.mainItem || "";
+  phoneInput.value = d.phone || "";
+  zip.value = d.zip || "";
+  pref.value = d.pref || "";
+  city.value = d.city || "";
+  town.value = d.town || "";
+  address.value = d.address || "";
+
+  alert("顧客情報を反映しました");
+};
+
+/* ================= 買取品目 ================= */
+
+window.addRow = function(){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input class="item"></td>
+    <td><input type="number" class="buy" value="0"></td>
+    <td><input type="number" class="sell" value="0"></td>
+    <td><button type="button" onclick="this.parentElement.parentElement.remove();calcTotal()">削除</button></td>
+  `;
+  document.querySelector("#itemTable tbody").appendChild(tr);
+  tr.querySelectorAll("input").forEach(i=>i.addEventListener("input",calcTotal));
+};
+
+window.calcTotal = function(){
+  let buy=0, sell=0;
+  document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value));
+  document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value));
+  document.getElementById("buyTotal").innerText = buy;
+  document.getElementById("sellTotal").innerText = sell;
+};
+
+/* ================= 保存 ================= */
+
+window.saveData = async function(){
+
+  const data = {
+    visitTime:visitTime.value,
+    salesType:salesType.value,
+    media:media.value,
+    staff:staff.value,
+    lastName:lastName.value,
+    firstName:firstName.value,
+    gender:gender.value,
+    birth:birth.value,
+    age:age.value,
+    job:job.value,
+    mainItem:mainItem.value,
+    phone:phoneInput.value,
+    zip:zip.value,
+    pref:pref.value,
+    city:city.value,
+    town:town.value,
+    address:address.value,
+    thanks:thanks.checked,
+    review:review.checked,
+    buyTotal:buyTotal.innerText,
+    sellTotal:sellTotal.innerText,
+    createdAt:serverTimestamp()
+  };
+
+  await addDoc(collection(db,"reports"),data);
+
+  /* 顧客マスター保存 */
+  const q = query(collection(db,"customers"), where("phone","==",phoneInput.value));
+  const snap = await getDocs(q);
+  if(snap.empty){
+    await addDoc(collection(db,"customers"),data);
+  }
+
+  alert("保存しました");
+};
+
+</script>
 
 <style>
-body{font-family:sans-serif;background:#f4f4f4;margin:0}
-.container{max-width:1100px;margin:auto;padding:20px}
-.section{background:white;padding:15px;margin-bottom:15px;border-radius:10px}
-input,select,textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:6px}
-.flex{display:flex;gap:10px}
-.flex>div{flex:1}
-.hidden{display:none}
+body{font-family:sans-serif;background:#f4f6f9;padding:20px}
+.card{background:white;padding:20px;border-radius:10px}
+.flex{display:flex;gap:15px;margin-bottom:10px}
+input,select,textarea{padding:5px;width:100%}
 table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #ddd;padding:6px;text-align:center}
-.saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px;margin-top:15px}
-.toggleWrap{display:flex;gap:10px;margin-bottom:15px}
-.toggleBtn{flex:1;padding:14px;font-size:18px;border:none;border-radius:10px;cursor:pointer;background:#ccc;color:white;}
-.winActive{background:#2e7d32}
-.loseActive{background:#c62828}
-.cards{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.card{padding:10px;border-radius:8px;color:white;min-width:220px}
-.win{background:#2e7d32}
-.lose{background:#c62828}
+th,td{border:1px solid #ddd;padding:5px;text-align:center}
+button{padding:6px 12px;background:#2c7be5;color:white;border:none;border-radius:5px;cursor:pointer}
+.cards{display:flex;gap:10px;margin-top:20px}
 </style>
 </head>
 
 <body>
-<div class="container">
 
-<h2>日報入力</h2>
+<div class="card">
 
-<div class="toggleWrap">
-<button id="winBtn" class="toggleBtn">成約</button>
-<button id="loseBtn" class="toggleBtn">失注</button>
+<h3>来店情報</h3>
+<div class="flex">
+  <div><label>来店時間</label><input type="time" id="visitTime"></div>
+  <div><label>営業形態</label><input id="salesType"></div>
+  <div><label>媒体</label><input id="media"></div>
+  <div><label>担当者</label><input id="staff"></div>
 </div>
-
-<!-- 成約フォーム -->
-<div id="winForm" class="section hidden">
 
 <h3>顧客検索</h3>
 <div class="flex">
-<div><input id="searchPhone" placeholder="電話番号で検索"></div>
-<div><button type="button" id="searchBtn">検索</button></div>
+  <input id="phoneSearch" placeholder="電話番号">
+  <button onclick="searchCustomer()">検索</button>
 </div>
 
 <h3>顧客情報</h3>
-
 <div class="flex">
-<div><label>来店時間</label><input type="time" id="visitTime"></div>
-<div><label>営業形態</label><input id="salesType"></div>
-<div><label>媒体</label><input id="media"></div>
+  <div><label>姓</label><input id="lastName"></div>
+  <div><label>名</label><input id="firstName"></div>
 </div>
 
 <div class="flex">
-<div><label>担当者</label><input id="staff"></div>
-<div><label>姓</label><input id="lastName"></div>
-<div><label>名</label><input id="firstName"></div>
-</div>
-
-<div class="flex">
-<div>
-<label>性別</label>
-<select id="gender">
-<option>男性</option>
-<option>女性</option>
-</select>
-</div>
-<div><label>生年月日</label><input type="date" id="birth"></div>
-<div><label>年齢</label><input id="age" readonly></div>
+  <div>
+    <label>性別</label>
+    <select id="gender">
+      <option>男性</option>
+      <option>女性</option>
+    </select>
+  </div>
+  <div><label>生年月日</label><input type="date" id="birth" onchange="calcAge()"></div>
+  <div><label>年齢</label><input id="age" readonly></div>
 </div>
 
 <label>職業</label><input id="job">
 <label>メイン品目</label><input id="mainItem">
-<label>電話番号</label><input id="phone">
-<label>郵便番号</label><input id="zip">
+<label>電話番号</label><input id="phoneInput">
+
+<label>郵便番号</label>
+<input id="zip" onblur="searchZip()">
 
 <div class="flex">
-<div><label>県</label><input id="pref"></div>
-<div><label>市区</label><input id="city"></div>
-<div><label>町</label><input id="town"></div>
+  <div><label>県</label><input id="pref"></div>
+  <div><label>市区</label><input id="city"></div>
+  <div><label>町</label><input id="town"></div>
 </div>
 
 <label>番地など</label><input id="address">
@@ -95,198 +229,17 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </thead>
 <tbody></tbody>
 </table>
-
-<button type="button" id="addBtn">＋追加</button>
+<button onclick="addRow()">＋追加</button>
 
 <h4>買取合計: <span id="buyTotal">0</span> 円</h4>
 <h4>売上合計: <span id="sellTotal">0</span> 円</h4>
 
-</div>
-
-<!-- 失注フォーム -->
-<div id="loseForm" class="section hidden">
-<label>来店時間</label><input type="time" id="loseTime">
-<label>媒体</label><input id="loseMedia">
-<label>品目</label><input id="loseItem">
-<label>失注理由</label><textarea id="loseReason"></textarea>
-</div>
-
-<button class="saveBtn" id="saveBtn">保存</button>
+<br>
+<button onclick="saveData()">保存</button>
 
 <h3>本日の日報</h3>
 <div class="cards" id="todayCards"></div>
 
 </div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore,collection,addDoc,query,where,getDocs,serverTimestamp }
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { createMenu } from "./menu.js";
-
-/* Firebase */
-const firebaseConfig={
- apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
- authDomain:"liagroup-a1ab1.firebaseapp.com",
- projectId:"liagroup-a1ab1",
- storageBucket:"liagroup-a1ab1.appspot.com",
- messagingSenderId:"361842389207",
- appId:"1:361842389207:web:1a7b92ef9d85b2726a4092"
-};
-
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-
-onAuthStateChanged(auth,user=>{
- if(!user){location.href="index.html";return;}
- createMenu("日報入力");
-});
-
-/* DOM */
-const winBtn=document.getElementById("winBtn");
-const loseBtn=document.getElementById("loseBtn");
-const winForm=document.getElementById("winForm");
-const loseForm=document.getElementById("loseForm");
-const buyTotal=document.getElementById("buyTotal");
-const sellTotal=document.getElementById("sellTotal");
-const todayCards=document.getElementById("todayCards");
-
-let isWin=null;
-
-/* 切替 */
-winBtn.onclick=()=>{
- isWin=true;
- winForm.classList.remove("hidden");
- loseForm.classList.add("hidden");
- winBtn.classList.add("winActive");
- loseBtn.classList.remove("loseActive");
-};
-loseBtn.onclick=()=>{
- isWin=false;
- loseForm.classList.remove("hidden");
- winForm.classList.add("hidden");
- loseBtn.classList.add("loseActive");
- winBtn.classList.remove("winActive");
-};
-
-/* 年齢自動 */
-birth.addEventListener("change",()=>{
- const b=new Date(birth.value);
- const today=new Date();
- let ageCalc=today.getFullYear()-b.getFullYear();
- if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) ageCalc--;
- age.value=ageCalc;
-});
-
-/* 郵便番号 */
-zip.addEventListener("blur",async()=>{
- const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip.value}`);
- const data=await res.json();
- if(data.results){
-  pref.value=data.results[0].address1;
-  city.value=data.results[0].address2;
-  town.value=data.results[0].address3;
- }
-});
-
-/* 顧客検索 */
-searchBtn.onclick=async()=>{
- const q=query(collection(db,"customers"),where("phone","==",searchPhone.value));
- const snap=await getDocs(q);
- if(snap.empty){alert("顧客なし");return;}
- const d=snap.docs[0].data();
- Object.keys(d).forEach(k=>{
-   if(document.getElementById(k)) document.getElementById(k).value=d[k];
- });
-};
-
-/* 品目追加 */
-function addRow(){
- const tr=document.createElement("tr");
- tr.innerHTML=`
- <td><input class="item"></td>
- <td><input type="number" class="buy" value="0"></td>
- <td><input type="number" class="sell" value="0"></td>
- <td><button type="button" class="delBtn">削除</button></td>
- `;
- tr.querySelector(".delBtn").onclick=()=>{tr.remove();calc();}
- tr.querySelectorAll("input").forEach(i=>i.oninput=calc);
- document.querySelector("#itemTable tbody").appendChild(tr);
-}
-addBtn.onclick=addRow;
-addRow();
-
-/* 合計 */
-function calc(){
- let buy=0,sell=0;
- document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value||0));
- document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value||0));
- buyTotal.textContent=buy.toLocaleString();
- sellTotal.textContent=sell.toLocaleString();
-}
-
-/* 保存 */
-saveBtn.onclick=async()=>{
- if(isWin===null){alert("成約か失注を選択");return;}
-
- const today=new Date().toISOString().split("T")[0];
-
- const customerData={
-  lastName:lastName.value,
-  firstName:firstName.value,
-  gender:gender.value,
-  birth:birth.value,
-  age:age.value,
-  job:job.value,
-  mainItem:mainItem.value,
-  phone:phone.value,
-  zip:zip.value,
-  pref:pref.value,
-  city:city.value,
-  town:town.value,
-  address:address.value
- };
-
- const data={
-  ...customerData,
-  isWin,
-  date:today,
-  buyTotal:Number(buyTotal.textContent.replace(/,/g,"")),
-  sellTotal:Number(sellTotal.textContent.replace(/,/g,"")),
-  createdAt:serverTimestamp()
- };
-
- if(!isWin) data.loseReason=loseReason.value;
-
- await addDoc(collection(db,"reports"),data);
-
- const q=query(collection(db,"customers"),where("phone","==",phone.value));
- const snap=await getDocs(q);
- if(snap.empty) await addDoc(collection(db,"customers"),customerData);
-
- alert("保存完了");
- loadToday();
-};
-
-/* 当日表示 */
-async function loadToday(){
- todayCards.innerHTML="";
- const today=new Date().toISOString().split("T")[0];
- const q=query(collection(db,"reports"),where("date","==",today));
- const snap=await getDocs(q);
- snap.forEach(doc=>{
-  const d=doc.data();
-  const div=document.createElement("div");
-  div.className="card "+(d.isWin?"win":"lose");
-  div.innerHTML=d.isWin
-   ? `${d.lastName||""} ${d.firstName||""}<br>買取:${d.buyTotal||0}円`
-   : `失注<br>${d.loseReason||""}`;
-  todayCards.appendChild(div);
- });
-}
-loadToday();
-</script>
 </body>
 </html>
