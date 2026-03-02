@@ -4,22 +4,24 @@
 <meta charset="UTF-8">
 <title>日報管理</title>
 
+<link rel="stylesheet" href="menu.css">
+
 <style>
 body{font-family:sans-serif;background:#f4f4f4;margin:0}
-.container{max-width:1000px;margin:auto;padding:20px}
+.container{max-width:1100px;margin:auto;padding:20px}
 .section{background:white;padding:15px;margin-bottom:15px;border-radius:10px}
 input,select,textarea{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:6px}
 .flex{display:flex;gap:10px}
 .flex>div{flex:1}
 .hidden{display:none}
-table{width:100%;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border:1px solid #ddd;padding:6px;text-align:center}
-.saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px}
+.saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px;margin-top:15px}
 
 .toggleWrap{display:flex;gap:10px;margin-bottom:15px}
 .toggleBtn{
  flex:1;
- padding:12px;
+ padding:14px;
  font-size:18px;
  border:none;
  border-radius:10px;
@@ -31,7 +33,7 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 .loseActive{background:#c62828}
 
 .cards{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.card{padding:10px;border-radius:8px;color:white;min-width:200px}
+.card{padding:10px;border-radius:8px;color:white;min-width:220px}
 .win{background:#2e7d32}
 .lose{background:#c62828}
 </style>
@@ -39,9 +41,9 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <body>
 <div class="container">
+
 <h2>日報入力</h2>
 
-<!-- 切替ボタン -->
 <div class="toggleWrap">
 <button id="winBtn" class="toggleBtn">成約</button>
 <button id="loseBtn" class="toggleBtn">失注</button>
@@ -49,9 +51,48 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <!-- 成約フォーム -->
 <div id="winForm" class="section hidden">
-<h3>成約情報</h3>
-<input id="lastName" placeholder="姓">
-<input id="firstName" placeholder="名">
+
+<h3>顧客情報</h3>
+
+<div class="flex">
+<div><label>来店時間</label><input type="time" id="visitTime"></div>
+<div><label>営業形態</label><input id="salesType"></div>
+<div><label>媒体</label><input id="media"></div>
+</div>
+
+<div class="flex">
+<div><label>担当者</label><input id="staff"></div>
+<div><label>姓</label><input id="lastName"></div>
+<div><label>名</label><input id="firstName"></div>
+</div>
+
+<div class="flex">
+<div>
+<label>性別</label>
+<select id="gender">
+<option>男性</option>
+<option>女性</option>
+</select>
+</div>
+<div><label>生年月日</label><input type="date" id="birth"></div>
+<div><label>年齢</label><input id="age" readonly></div>
+</div>
+
+<label>職業</label><input id="job">
+<label>メイン品目</label><input id="mainItem">
+<label>電話番号</label><input id="phone">
+<label>郵便番号</label><input id="zip">
+
+<div class="flex">
+<div><label>県</label><input id="pref"></div>
+<div><label>市区</label><input id="city"></div>
+<div><label>町</label><input id="town"></div>
+</div>
+
+<label>番地など</label><input id="address">
+
+<label><input type="checkbox" id="thanks"> 初回お礼手紙</label>
+<label><input type="checkbox" id="review"> 口コミ獲得</label>
 
 <h3>買取品目</h3>
 <table id="itemTable">
@@ -60,16 +101,20 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 </thead>
 <tbody></tbody>
 </table>
+
 <button type="button" id="addBtn">＋追加</button>
 
 <h4>買取合計: <span id="buyTotal">0</span> 円</h4>
 <h4>売上合計: <span id="sellTotal">0</span> 円</h4>
+
 </div>
 
 <!-- 失注フォーム -->
 <div id="loseForm" class="section hidden">
-<h3>失注情報</h3>
-<textarea id="loseReason" placeholder="失注理由"></textarea>
+<label>来店時間</label><input type="time" id="loseTime">
+<label>媒体</label><input id="loseMedia">
+<label>品目</label><input id="loseItem">
+<label>失注理由</label><textarea id="loseReason"></textarea>
 </div>
 
 <button class="saveBtn" id="saveBtn">保存</button>
@@ -81,8 +126,18 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore,collection,addDoc,serverTimestamp,getDocs,query,where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth,onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore,
+         collection,
+         addDoc,
+         query,
+         where,
+         getDocs,
+         serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { createMenu } from "./menu.js";
 
+/* Firebase設定 */
 const firebaseConfig={
  apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
  authDomain:"liagroup-a1ab1.firebaseapp.com",
@@ -93,7 +148,17 @@ const firebaseConfig={
 };
 
 const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
 const db=getFirestore(app);
+
+/* ⭐ログインチェック + メニュー生成 */
+onAuthStateChanged(auth,user=>{
+ if(!user){
+   location.href="index.html";
+   return;
+ }
+ createMenu("日報入力"); // ←ページ名表示
+});
 
 /* DOM */
 const winBtn=document.getElementById("winBtn");
@@ -107,20 +172,40 @@ const todayCards=document.getElementById("todayCards");
 let isWin=null;
 
 /* ボタン切替 */
-winBtn.addEventListener("click",()=>{
+winBtn.onclick=()=>{
  isWin=true;
  winForm.classList.remove("hidden");
  loseForm.classList.add("hidden");
  winBtn.classList.add("winActive");
  loseBtn.classList.remove("loseActive");
-});
-
-loseBtn.addEventListener("click",()=>{
+};
+loseBtn.onclick=()=>{
  isWin=false;
  loseForm.classList.remove("hidden");
  winForm.classList.add("hidden");
  loseBtn.classList.add("loseActive");
  winBtn.classList.remove("winActive");
+};
+
+/* 年齢 */
+document.getElementById("birth").addEventListener("change",()=>{
+ const b=new Date(birth.value);
+ const today=new Date();
+ let age=today.getFullYear()-b.getFullYear();
+ if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) age--;
+ document.getElementById("age").value=age;
+});
+
+/* 郵便番号 */
+document.getElementById("zip").addEventListener("blur",async()=>{
+ const zip=document.getElementById("zip").value;
+ const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+ const data=await res.json();
+ if(data.results){
+  pref.value=data.results[0].address1;
+  city.value=data.results[0].address2;
+  town.value=data.results[0].address3;
+ }
 });
 
 /* 行追加 */
@@ -132,11 +217,11 @@ function addRow(){
  <td><input type="number" class="sell" value="0"></td>
  <td><button type="button" class="delBtn">削除</button></td>
  `;
- tr.querySelector(".delBtn").addEventListener("click",()=>{tr.remove();calc();});
- tr.querySelectorAll("input").forEach(i=>i.addEventListener("input",calc));
+ tr.querySelector(".delBtn").onclick=()=>{tr.remove();calc();}
+ tr.querySelectorAll("input").forEach(i=>i.oninput=calc);
  document.querySelector("#itemTable tbody").appendChild(tr);
 }
-document.getElementById("addBtn").addEventListener("click",addRow);
+document.getElementById("addBtn").onclick=addRow;
 addRow();
 
 /* 合計 */
@@ -149,11 +234,8 @@ function calc(){
 }
 
 /* 保存 */
-document.getElementById("saveBtn").addEventListener("click",async()=>{
- if(isWin===null){
-  alert("成約か失注を選択してください");
-  return;
- }
+document.getElementById("saveBtn").onclick=async()=>{
+ if(isWin===null){ alert("成約か失注を選択してください"); return;}
 
  const today=new Date().toISOString().split("T")[0];
 
@@ -166,16 +248,16 @@ document.getElementById("saveBtn").addEventListener("click",async()=>{
  };
 
  if(isWin){
-  data.lastName=document.getElementById("lastName").value;
-  data.firstName=document.getElementById("firstName").value;
+  data.lastName=lastName.value;
+  data.firstName=firstName.value;
  }else{
-  data.loseReason=document.getElementById("loseReason").value;
+  data.loseReason=loseReason.value;
  }
 
  await addDoc(collection(db,"reports"),data);
  alert("保存完了");
  loadToday();
-});
+};
 
 /* 当日表示 */
 async function loadToday(){
