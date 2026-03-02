@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>日報管理</title>
-
 <link rel="stylesheet" href="menu.css">
 
 <style>
@@ -19,16 +18,7 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 .saveBtn{background:#e53935;color:white;padding:12px;border:none;border-radius:8px;width:100%;font-size:16px;margin-top:15px}
 
 .toggleWrap{display:flex;gap:10px;margin-bottom:15px}
-.toggleBtn{
- flex:1;
- padding:14px;
- font-size:18px;
- border:none;
- border-radius:10px;
- cursor:pointer;
- background:#ccc;
- color:white;
-}
+.toggleBtn{flex:1;padding:14px;font-size:18px;border:none;border-radius:10px;cursor:pointer;background:#ccc;color:white;}
 .winActive{background:#2e7d32}
 .loseActive{background:#c62828}
 
@@ -49,19 +39,17 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 <button id="loseBtn" class="toggleBtn">失注</button>
 </div>
 
-<!-- 成約フォーム -->
 <div id="winForm" class="section hidden">
+
+<h3>顧客検索</h3>
+<div class="flex">
+<div><input id="searchPhone" placeholder="電話番号で検索"></div>
+<div><button type="button" id="searchBtn">検索</button></div>
+</div>
 
 <h3>顧客情報</h3>
 
 <div class="flex">
-<div><label>来店時間</label><input type="time" id="visitTime"></div>
-<div><label>営業形態</label><input id="salesType"></div>
-<div><label>媒体</label><input id="media"></div>
-</div>
-
-<div class="flex">
-<div><label>担当者</label><input id="staff"></div>
 <div><label>姓</label><input id="lastName"></div>
 <div><label>名</label><input id="firstName"></div>
 </div>
@@ -91,30 +79,6 @@ th,td{border:1px solid #ddd;padding:6px;text-align:center}
 
 <label>番地など</label><input id="address">
 
-<label><input type="checkbox" id="thanks"> 初回お礼手紙</label>
-<label><input type="checkbox" id="review"> 口コミ獲得</label>
-
-<h3>買取品目</h3>
-<table id="itemTable">
-<thead>
-<tr><th>品目</th><th>買取価格</th><th>売上価格</th><th></th></tr>
-</thead>
-<tbody></tbody>
-</table>
-
-<button type="button" id="addBtn">＋追加</button>
-
-<h4>買取合計: <span id="buyTotal">0</span> 円</h4>
-<h4>売上合計: <span id="sellTotal">0</span> 円</h4>
-
-</div>
-
-<!-- 失注フォーム -->
-<div id="loseForm" class="section hidden">
-<label>来店時間</label><input type="time" id="loseTime">
-<label>媒体</label><input id="loseMedia">
-<label>品目</label><input id="loseItem">
-<label>失注理由</label><textarea id="loseReason"></textarea>
 </div>
 
 <button class="saveBtn" id="saveBtn">保存</button>
@@ -137,7 +101,7 @@ import { getFirestore,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { createMenu } from "./menu.js";
 
-/* Firebase設定 */
+/* Firebase */
 const firebaseConfig={
  apiKey:"AIzaSyACBuhohMmUJc_aQScQGqeLMN8mmsxRFmo",
  authDomain:"liagroup-a1ab1.firebaseapp.com",
@@ -151,55 +115,33 @@ const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 
-/* ⭐ログインチェック + メニュー生成 */
 onAuthStateChanged(auth,user=>{
- if(!user){
-   location.href="index.html";
-   return;
- }
- createMenu("日報入力"); // ←ページ名表示
+ if(!user){location.href="index.html";return;}
+ createMenu("日報入力");
 });
 
 /* DOM */
 const winBtn=document.getElementById("winBtn");
-const loseBtn=document.getElementById("loseBtn");
 const winForm=document.getElementById("winForm");
-const loseForm=document.getElementById("loseForm");
-const buyTotal=document.getElementById("buyTotal");
-const sellTotal=document.getElementById("sellTotal");
 const todayCards=document.getElementById("todayCards");
 
-let isWin=null;
-
-/* ボタン切替 */
 winBtn.onclick=()=>{
- isWin=true;
  winForm.classList.remove("hidden");
- loseForm.classList.add("hidden");
  winBtn.classList.add("winActive");
- loseBtn.classList.remove("loseActive");
-};
-loseBtn.onclick=()=>{
- isWin=false;
- loseForm.classList.remove("hidden");
- winForm.classList.add("hidden");
- loseBtn.classList.add("loseActive");
- winBtn.classList.remove("winActive");
 };
 
-/* 年齢 */
-document.getElementById("birth").addEventListener("change",()=>{
+/* 年齢自動計算 */
+birth.addEventListener("change",()=>{
  const b=new Date(birth.value);
  const today=new Date();
- let age=today.getFullYear()-b.getFullYear();
- if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) age--;
- document.getElementById("age").value=age;
+ let ageCalc=today.getFullYear()-b.getFullYear();
+ if(today < new Date(today.getFullYear(),b.getMonth(),b.getDate())) ageCalc--;
+ age.value=ageCalc;
 });
 
-/* 郵便番号 */
-document.getElementById("zip").addEventListener("blur",async()=>{
- const zip=document.getElementById("zip").value;
- const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+/* 郵便番号→住所 */
+zip.addEventListener("blur",async()=>{
+ const res=await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip.value}`);
  const data=await res.json();
  if(data.results){
   pref.value=data.results[0].address1;
@@ -208,58 +150,66 @@ document.getElementById("zip").addEventListener("blur",async()=>{
  }
 });
 
-/* 行追加 */
-function addRow(){
- const tr=document.createElement("tr");
- tr.innerHTML=`
- <td><input class="item"></td>
- <td><input type="number" class="buy" value="0"></td>
- <td><input type="number" class="sell" value="0"></td>
- <td><button type="button" class="delBtn">削除</button></td>
- `;
- tr.querySelector(".delBtn").onclick=()=>{tr.remove();calc();}
- tr.querySelectorAll("input").forEach(i=>i.oninput=calc);
- document.querySelector("#itemTable tbody").appendChild(tr);
-}
-document.getElementById("addBtn").onclick=addRow;
-addRow();
+/* 顧客検索 */
+searchBtn.onclick=async()=>{
+ const q=query(collection(db,"customers"),where("phone","==",searchPhone.value));
+ const snap=await getDocs(q);
+ if(snap.empty){alert("顧客なし");return;}
+ const d=snap.docs[0].data();
 
-/* 合計 */
-function calc(){
- let buy=0,sell=0;
- document.querySelectorAll(".buy").forEach(i=>buy+=Number(i.value||0));
- document.querySelectorAll(".sell").forEach(i=>sell+=Number(i.value||0));
- buyTotal.textContent=buy.toLocaleString();
- sellTotal.textContent=sell.toLocaleString();
-}
+ lastName.value=d.lastName||"";
+ firstName.value=d.firstName||"";
+ gender.value=d.gender||"男性";
+ birth.value=d.birth||"";
+ age.value=d.age||"";
+ job.value=d.job||"";
+ mainItem.value=d.mainItem||"";
+ phone.value=d.phone||"";
+ zip.value=d.zip||"";
+ pref.value=d.pref||"";
+ city.value=d.city||"";
+ town.value=d.town||"";
+ address.value=d.address||"";
+};
 
 /* 保存 */
-document.getElementById("saveBtn").onclick=async()=>{
- if(isWin===null){ alert("成約か失注を選択してください"); return;}
-
+saveBtn.onclick=async()=>{
  const today=new Date().toISOString().split("T")[0];
 
- const data={
-  isWin,
-  date:today,
-  buyTotal:Number(buyTotal.textContent.replace(/,/g,"")),
-  sellTotal:Number(sellTotal.textContent.replace(/,/g,"")),
-  createdAt:serverTimestamp()
+ const customerData={
+  lastName:lastName.value,
+  firstName:firstName.value,
+  gender:gender.value,
+  birth:birth.value,
+  age:age.value,
+  job:job.value,
+  mainItem:mainItem.value,
+  phone:phone.value,
+  zip:zip.value,
+  pref:pref.value,
+  city:city.value,
+  town:town.value,
+  address:address.value,
+  updatedAt:serverTimestamp()
  };
 
- if(isWin){
-  data.lastName=lastName.value;
-  data.firstName=firstName.value;
- }else{
-  data.loseReason=loseReason.value;
+ await addDoc(collection(db,"reports"),{
+  ...customerData,
+  date:today,
+  createdAt:serverTimestamp()
+ });
+
+ const q=query(collection(db,"customers"),where("phone","==",phone.value));
+ const snap=await getDocs(q);
+ if(snap.empty){
+   await addDoc(collection(db,"customers"),customerData);
  }
 
- await addDoc(collection(db,"reports"),data);
  alert("保存完了");
  loadToday();
 };
 
-/* 当日表示 */
+/* 本日表示 */
 async function loadToday(){
  todayCards.innerHTML="";
  const today=new Date().toISOString().split("T")[0];
@@ -268,15 +218,12 @@ async function loadToday(){
  snap.forEach(doc=>{
   const d=doc.data();
   const div=document.createElement("div");
-  div.className="card "+(d.isWin?"win":"lose");
-  div.innerHTML=d.isWin?
-   `${d.lastName||""} ${d.firstName||""}<br>買取:${d.buyTotal||0}円`:
-   `失注<br>${d.loseReason||""}`;
+  div.className="card win";
+  div.innerHTML=`${d.lastName||""} ${d.firstName||""}<br>${d.phone||""}`;
   todayCards.appendChild(div);
  });
 }
 loadToday();
-
 </script>
 </body>
 </html>
